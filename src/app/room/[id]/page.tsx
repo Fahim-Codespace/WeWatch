@@ -11,6 +11,7 @@ import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search } from 
 import { getStreamSources } from '@/lib/streamSources';
 import { getTrending, getTVShowDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
 import EpisodeSelector from '@/components/EpisodeSelector';
+import WatchSidebar from '@/components/WatchSidebar';
 import { Episode, Season } from '@/types/media';
 
 export default function RoomPage() {
@@ -160,21 +161,14 @@ export default function RoomPage() {
 
     const handleEpisodeSelect = (season: number, episode: number) => {
         if (!tvId) return;
-
-        // Construct new URL using the same source pattern if possible, or default to a reliable one
-        // We'll use getStreamSources to get a fresh list for the new episode
         const sources = getStreamSources('tv', tvId, season, episode);
-
         if (sources.length > 0) {
-            // Use the same server if possible? 
-            // For now, just load the first one (Vidsrc.me) which is reliable
-            // Or try to match the current provider?
-            // current provider logic is complex to match URL. 
-            // Defaulting to first source is safe.
             setVideoUrl(sources[0].url, 'embed');
-
-            // Dispatch to local player too? room state listener handles it.
         }
+    };
+
+    const handleServerSelect = (url: string) => {
+        setVideoUrl(url, 'embed');
     };
 
 
@@ -393,114 +387,202 @@ export default function RoomPage() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <button
-                            onClick={() => setShowBrowseModal(true)}
-                            className="btn-primary"
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', padding: '8px 16px' }}
-                        >
-                            <Film size={16} />
-                            Browse Movies
-                        </button>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            <Users size={18} />
-                            <span>{participants.length} watching</span>
-                        </div>
-                        <button
-                            onClick={copyInviteLink}
-                            className="btn-secondary"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '0.85rem',
-                                padding: '8px 16px',
-                                borderColor: copySuccess ? 'var(--primary)' : 'var(--glass-border)'
-                            }}
-                        >
-                            <Share2 size={16} />
-                            {copySuccess ? 'Link Copied!' : 'Invite Friends'}
-                        </button>
-                        <button
-                            className="btn-secondary"
-                            style={{ width: '36px', height: '36px', padding: 0, justifyContent: 'center' }}
-                            onClick={() => setShowSettingsModal(true)}
-                        >
-                            <Settings size={18} />
-                        </button>
-                        <button
-                            onClick={() => router.push('/')}
-                            style={{
-                                background: 'rgba(255, 68, 68, 0.1)',
-                                color: '#ff4444',
-                                border: '1px solid rgba(255, 68, 68, 0.2)',
-                                borderRadius: '8px',
-                                padding: '6px 12px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                fontWeight: '600',
-                                fontSize: '0.85rem'
-                            }}
-                        >
-                            <LogOut size={16} />
-                            Leave Room
-                        </button>
+                <div className="header-actions">
+                    <button
+                        onClick={() => setShowBrowseModal(true)}
+                        className="btn-primary browse-btn"
+                    >
+                        <Film size={18} />
+                        <span>Browse</span>
+                    </button>
+
+                    <div className="watching-badge">
+                        <Users size={16} />
+                        <span>{participants.length}</span>
                     </div>
+
+                    <button
+                        onClick={copyInviteLink}
+                        className="btn-secondary invite-btn"
+                        title="Invite Friends"
+                    >
+                        <Share2 size={16} />
+                        <span>Invite</span>
+                    </button>
+
+                    <button
+                        className="btn-secondary settings-btn"
+                        onClick={() => setShowSettingsModal(true)}
+                    >
+                        <Settings size={18} />
+                    </button>
+
+                    <button
+                        onClick={() => router.push('/')}
+                        className="leave-btn"
+                    >
+                        <LogOut size={16} />
+                        <span>Leave</span>
+                    </button>
                 </div>
             </header>
 
             {/* Main Layout */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <div className="room-content">
                 {/* Playback Area */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', gap: '20px', overflowY: 'auto' }}>
+                <div className="video-area">
                     <VideoPlayer />
 
-                    {/* Episode Selector for TV Shows */}
-                    {isTvShow && tvId && (
-                        <div style={{ marginTop: '-20px' }}>
-                            <EpisodeSelector
-                                seasons={seasons}
-                                currentSeason={currentSeason}
-                                currentEpisode={currentEpisode}
-                                onEpisodeSelect={handleEpisodeSelect}
-                                tvId={tvId}
-                                tvTitle={mediaTitle}
-                            />
-                        </div>
-                    )}
-
-                    <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Sync Info Banner (Embedded in flow) */}
+                    <div className="glass sync-banner">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Stream Controls</h3>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                {videoState.sourceType === 'embed' ? (
-                                    <div style={{ padding: '4px 10px', background: 'rgba(255, 170, 0, 0.1)', color: '#ffaa00', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(255, 170, 0, 0.2)' }}>
-                                        SYNC LIMITED (EMBED)
-                                    </div>
-                                ) : (
-                                    <div style={{ padding: '4px 10px', background: 'rgba(0, 255, 136, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
-                                        LIVE SYNC ON
-                                    </div>
-                                )}
-                            </div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: '700' }}>Sync Status</h3>
+                            {videoState.sourceType === 'embed' ? (
+                                <div className="badge warning">SYNC LIMITED (EMBED)</div>
+                            ) : (
+                                <div className="badge success">LIVE SYNC ON</div>
+                            )}
                         </div>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '8px' }}>
                             {videoState.sourceType === 'embed'
-                                ? "You are watching via an external embed server. Play/Pause/Seek sync is not available for this source. Episode selection IS synced."
-                                : "Any watcher can control the movie. Changes will be instantly synced across all participants."
+                                ? "Episode selection is synced. Play/Pause/Seek sync is limited for external embeds."
+                                : "Playback and seeking are instantly synced across all participants."
                             }
                         </p>
                     </div>
                 </div>
 
                 {/* Sidebar */}
-                <div style={{ width: '400px', borderLeft: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
-                    <ChatSystem />
-                </div>
+                <WatchSidebar
+                    roomId={params.id as string}
+                    mediaType={isTvShow ? 'tv' : 'movie'}
+                    seasons={seasons}
+                    tvId={tvId || undefined}
+                    tvTitle={mediaTitle}
+                    currentSeason={currentSeason}
+                    currentEpisode={currentEpisode}
+                    onEpisodeSelect={handleEpisodeSelect}
+                    sources={isTvShow && tvId ? getStreamSources('tv', tvId, currentSeason, currentEpisode) : (tvId ? getStreamSources('movie', tvId) : [])}
+                    onServerSelect={handleServerSelect}
+                    activeServerUrl={videoState.url}
+                />
             </div>
+
+            <style jsx>{`
+                .room-header {
+                    padding: 12px 24px;
+                    background: rgba(10, 10, 10, 0.8);
+                    backdrop-filter: blur(10px);
+                    border-bottom: 1px solid var(--glass-border);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 64px;
+                }
+
+                .room-content {
+                    flex: 1;
+                    display: flex;
+                    overflow: hidden;
+                }
+
+                .video-area {
+                    flex: 1;
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                    overflow-y: auto;
+                    background: #000;
+                }
+
+                .header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .badge {
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    border: 1px solid transparent;
+                }
+                .badge.warning { background: rgba(255, 170, 0, 0.1); color: #ffaa00; border-color: rgba(255, 170, 0, 0.2); }
+                .badge.success { background: rgba(0, 255, 136, 0.1); color: var(--primary); border-color: rgba(0, 255, 136, 0.2); }
+
+                .sync-banner {
+                    padding: 20px;
+                }
+
+                .watching-badge {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: var(--text-muted);
+                    font-size: 0.9rem;
+                    background: var(--secondary);
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    border: 1px solid var(--glass-border);
+                }
+
+                .leave-btn {
+                    background: rgba(255, 68, 68, 0.1);
+                    color: #ff4444;
+                    border: 1px solid rgba(255, 68, 68, 0.2);
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    transition: all 0.2s ease;
+                }
+                .leave-btn:hover { background: rgba(255, 68, 68, 0.2); }
+
+                .settings-btn { width: 38px; height: 38px; padding: 0; justify-content: center; }
+
+                @media (max-width: 1024px) {
+                    .media-name-badge { display: none; }
+                }
+
+                @media (max-width: 768px) {
+                    .room-content {
+                        flex-direction: column;
+                    }
+                    .video-area {
+                        padding: 12px;
+                        flex: none;
+                        height: auto;
+                    }
+                    .room-header {
+                        padding: 10px 16px;
+                        height: auto;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    }
+                    .header-actions {
+                        width: 100%;
+                        justify-content: space-between;
+                        gap: 8px;
+                    }
+                    .browse-btn span, 
+                    .invite-btn span, 
+                    .leave-btn span {
+                        display: none;
+                    }
+                    .browse-btn, .invite-btn, .leave-btn {
+                        padding: 10px;
+                    }
+                    .watching-badge {
+                        padding: 10px;
+                    }
+                }
+            `}</style>
 
             {/* Browse Modal */}
             <BrowseModal
