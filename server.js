@@ -9,7 +9,9 @@ app.use(cors());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
+        origin: process.env.ALLOWED_ORIGIN
+            ? process.env.ALLOWED_ORIGIN.split(',').map(o => o.trim())
+            : "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
