@@ -9,7 +9,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: ALLOWED_ORIGIN
-        sync: false
-        placeholder: "https://your-vercel-domain.vercel.app"
+        value: "https://wewatch-fahim.vercel.app"
       - key: PORT
         value: 10000
