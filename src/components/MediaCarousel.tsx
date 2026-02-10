@@ -40,7 +40,7 @@ export default function MediaCarousel({ title, items, mediaType }: MediaCarousel
             </h2>
 
             {/* Carousel Container */}
-            <div style={{ position: 'relative', group: 'carousel' }}>
+            <div style={{ position: 'relative' }}>
                 {/* Left Arrow */}
                 <button
                     onClick={() => scroll('left')}
