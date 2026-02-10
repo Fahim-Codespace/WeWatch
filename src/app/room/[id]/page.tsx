@@ -38,7 +38,8 @@ export default function RoomPage() {
     const [shouldInitVideo, setShouldInitVideo] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
 
-    // TV Show State
+    // Media State
+    const [mediaId, setMediaId] = useState<number | null>(null);
     const [isTvShow, setIsTvShow] = useState(false);
     const [tvId, setTvId] = useState<number | null>(null);
     const [currentSeason, setCurrentSeason] = useState(1);
@@ -95,33 +96,29 @@ export default function RoomPage() {
         if (!videoState.url) return;
 
         const parseUrl = (url: string) => {
-            // Patterns to match:
-            // /tv/123/1/1
-            // /tv/123-1-1
-            // s=1&e=1 (requires ID from somewhere else? No, usually ID is in path)
+            // TV Regex
+            const tvPathRegex = /\/tv\/(\d+)[\/-](\d+)[\/-](\d+)/;
+            const tvQueryRegex = /(?:video_id=|embedtv\/)(\d+).*?[?&]s=(\d+).*?[?&]e=(\d+)/;
 
-            // Regex for standard path format: .../tv/ID/SEASON/EPISODE
-            const pathRegex = /\/tv\/(\d+)[\/-](\d+)[\/-](\d+)/;
-            const match = url.match(pathRegex);
+            // Movie Regex
+            const moviePathRegex = /\/movie\/(\d+)/;
+            const movieQueryRegex = /(?:video_id=|movie\/)(\d+)/;
 
-            if (match) {
+            const tvMatch = url.match(tvPathRegex) || url.match(tvQueryRegex);
+            if (tvMatch) {
                 return {
-                    id: parseInt(match[1]),
-                    season: parseInt(match[2]),
-                    episode: parseInt(match[3])
+                    type: 'tv',
+                    id: parseInt(tvMatch[1]),
+                    season: parseInt(tvMatch[2]),
+                    episode: parseInt(tvMatch[3])
                 };
             }
 
-            // Regex for query param format: ...?video_id=ID...s=SEASON...e=EPISODE
-            // or .../embedtv/ID&s=SEASON&e=EPISODE
-            const queryRegex = /(?:video_id=|embedtv\/)(\d+).*?[?&]s=(\d+).*?[?&]e=(\d+)/;
-            const matchQuery = url.match(queryRegex);
-
-            if (matchQuery) {
+            const movieMatch = url.match(moviePathRegex) || url.match(movieQueryRegex);
+            if (movieMatch) {
                 return {
-                    id: parseInt(matchQuery[1]),
-                    season: parseInt(matchQuery[2]),
-                    episode: parseInt(matchQuery[3])
+                    type: 'movie',
+                    id: parseInt(movieMatch[1])
                 };
             }
 
@@ -131,12 +128,16 @@ export default function RoomPage() {
         const parsed = parseUrl(videoState.url);
 
         if (parsed) {
-            setIsTvShow(true);
-            setTvId(parsed.id);
-            setCurrentSeason(parsed.season);
-            setCurrentEpisode(parsed.episode);
-        } else {
-            setIsTvShow(false);
+            setMediaId(parsed.id);
+            if (parsed.type === 'tv') {
+                setIsTvShow(true);
+                setTvId(parsed.id);
+                setCurrentSeason(parsed.season || 1);
+                setCurrentEpisode(parsed.episode || 1);
+            } else {
+                setIsTvShow(false);
+                setTvId(null);
+            }
         }
     }, [videoState.url]);
 
@@ -457,12 +458,12 @@ export default function RoomPage() {
                     roomId={params.id as string}
                     mediaType={isTvShow ? 'tv' : 'movie'}
                     seasons={seasons}
-                    tvId={tvId || undefined}
+                    tvId={mediaId || undefined}
                     tvTitle={mediaTitle}
                     currentSeason={currentSeason}
                     currentEpisode={currentEpisode}
                     onEpisodeSelect={handleEpisodeSelect}
-                    sources={isTvShow && tvId ? getStreamSources('tv', tvId, currentSeason, currentEpisode) : (tvId ? getStreamSources('movie', tvId) : [])}
+                    sources={isTvShow && mediaId ? getStreamSources('tv', mediaId, currentSeason, currentEpisode) : (mediaId ? getStreamSources('movie', mediaId) : [])}
                     onServerSelect={handleServerSelect}
                     activeServerUrl={videoState.url}
                 />
