@@ -350,7 +350,7 @@ export default function RoomPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <button
                         onClick={() => router.push('/')}
-                        className="header-icon-btn btn-back"
+                        className="btn-back"
                         title="Go back to Home"
                     >
                         <ArrowLeft size={20} />
@@ -358,23 +358,14 @@ export default function RoomPage() {
 
                     <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
 
-                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-                        <div style={{
-                            background: 'var(--primary)',
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 0 10px var(--primary-glow)'
-                        }}>
-                            <Film size={16} color="#000" fill="#000" />
-                        </div>
+                    <div
+                        onClick={() => router.push('/')}
+                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+                    >
                         <span style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>
                             WE<span style={{ color: 'var(--primary)' }}>WATCH</span>
                         </span>
-                    </Link>
+                    </div>
                     <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div className="room-id-badge">
@@ -438,7 +429,7 @@ export default function RoomPage() {
                         className="leave-btn"
                     >
                         <LogOut size={16} />
-                        <span>Leave</span>
+                        <span>Leave Room</span>
                     </button>
                 </div>
             </header>
@@ -518,20 +509,28 @@ export default function RoomPage() {
                     gap: 12px;
                 }
 
-                .header-icon-btn {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid var(--glass-border);
-                    color: #fff;
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 50%;
+                .btn-back {
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    width: 42px;
+                    height: 42px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid var(--glass-border);
+                    color: white;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    backdrop-filter: blur(10px);
                 }
-                .header-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+                .btn-back:hover {
+                    background: var(--primary);
+                    color: black;
+                    transform: translateX(-5px);
+                    box-shadow: 0 0 20px var(--primary-glow);
+                    border-color: var(--primary);
+                }
 
                 .room-id-badge {
                     padding: 4px 12px;
