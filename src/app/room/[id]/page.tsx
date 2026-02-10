@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useRoom } from '@/context/RoomContext';
 import VideoPlayer from '@/components/VideoPlayer';
 import ChatSystem from '@/components/ChatSystem';
 import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
-import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search } from 'lucide-react';
+import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search, ArrowLeft } from 'lucide-react';
 import { getStreamSources } from '@/lib/streamSources';
 import { getTrending, getTVShowDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
 import EpisodeSelector from '@/components/EpisodeSelector';
@@ -346,29 +347,43 @@ export default function RoomPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div onClick={() => router.push('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>WE<span style={{ color: 'var(--primary)' }}>WATCH</span></span>
-                    </div>
-                    <div style={{ height: '20px', width: '1px', background: 'var(--glass-border)' }}></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <button
+                        onClick={() => router.push('/')}
+                        className="header-icon-btn btn-back"
+                        title="Go back to Home"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+
+                    <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
+
+                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
                         <div style={{
-                            padding: '4px 12px',
-                            background: 'var(--secondary)',
+                            background: 'var(--primary)',
+                            width: '28px',
+                            height: '28px',
                             borderRadius: '6px',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            border: '1px solid var(--glass-border)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            justifyContent: 'center',
+                            boxShadow: '0 0 10px var(--primary-glow)'
                         }}>
+                            <Film size={16} color="#000" fill="#000" />
+                        </div>
+                        <span style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>
+                            WE<span style={{ color: 'var(--primary)' }}>WATCH</span>
+                        </span>
+                    </Link>
+                    <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="room-id-badge">
                             <span style={{ color: 'var(--primary)' }}>ROOM:</span> {params.id}
                         </div>
                         {mediaTitle && (
                             <>
                                 <div style={{ height: '20px', width: '1px', background: 'var(--glass-border)' }}></div>
-                                <div style={{
+                                <div className="media-title-badge" style={{
                                     padding: '4px 12px',
                                     background: 'rgba(0, 255, 136, 0.1)',
                                     borderRadius: '6px',
@@ -376,7 +391,7 @@ export default function RoomPage() {
                                     fontWeight: '600',
                                     border: '1px solid rgba(0, 255, 136, 0.2)',
                                     color: 'var(--primary)',
-                                    maxWidth: '300px',
+                                    maxWidth: '200px',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap'
@@ -503,6 +518,34 @@ export default function RoomPage() {
                     gap: 12px;
                 }
 
+                .header-icon-btn {
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid var(--glass-border);
+                    color: #fff;
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .header-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+                .room-id-badge {
+                    padding: 4px 12px;
+                    background: var(--secondary);
+                    borderRadius: 6px;
+                    fontSize: 0.8rem;
+                    fontWeight: 600;
+                    border: 1px solid var(--glass-border);
+                    display: flex;
+                    alignItems: center;
+                    gap: 6px;
+                    white-space: nowrap;
+                }
+
                 .badge {
                     padding: 4px 10px;
                     border-radius: 4px;
@@ -548,10 +591,11 @@ export default function RoomPage() {
                 .settings-btn { width: 38px; height: 38px; padding: 0; justify-content: center; }
 
                 @media (max-width: 1024px) {
-                    .media-name-badge { display: none; }
+                    .media-title-badge { display: none; }
                 }
 
                 @media (max-width: 768px) {
+                    .room-id-badge { display: none; }
                     .room-content {
                         flex-direction: column;
                     }
