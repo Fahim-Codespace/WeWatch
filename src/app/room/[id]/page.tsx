@@ -1,0 +1,547 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useRoom } from '@/context/RoomContext';
+import VideoPlayer from '@/components/VideoPlayer';
+import ChatSystem from '@/components/ChatSystem';
+import BrowseModal from '@/components/BrowseModal';
+import RoomSettingsModal from '@/components/RoomSettingsModal';
+import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search } from 'lucide-react';
+import { getStreamSources } from '@/lib/streamSources';
+import { getTrending, getTVShowDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
+import EpisodeSelector from '@/components/EpisodeSelector';
+import { Episode, Season } from '@/types/media';
+
+export default function RoomPage() {
+    const params = useParams();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const {
+        socket,
+        joinRoom,
+        videoState,
+        setVideoUrl,
+        currentUserName,
+        participants,
+        roomSettings,
+        updateRoomSettings
+    } = useRoom();
+    const [isJoined, setIsJoined] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [mediaTitle, setMediaTitle] = useState('');
+    const [showBrowseModal, setShowBrowseModal] = useState(false);
+    const [browseResults, setBrowseResults] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [shouldInitVideo, setShouldInitVideo] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
+
+    // TV Show State
+    const [isTvShow, setIsTvShow] = useState(false);
+    const [tvId, setTvId] = useState<number | null>(null);
+    const [currentSeason, setCurrentSeason] = useState(1);
+    const [currentEpisode, setCurrentEpisode] = useState(1);
+    const [seasons, setSeasons] = useState<Season[]>([]);
+    const [tvDetails, setTvDetails] = useState<any>(null);
+
+    const handleJoinRoom = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (userName.trim() && params.id) {
+            joinRoom(params.id as string, userName.trim());
+            setIsJoined(true);
+
+            // Trigger video initialization check
+            setShouldInitVideo(true);
+        }
+    };
+
+    // Auto-load video when socket is ready and user has joined
+    useEffect(() => {
+        if (!shouldInitVideo || !socket) return;
+
+        const mediaParam = searchParams.get('media');
+        const titleParam = searchParams.get('title');
+
+        if (mediaParam && titleParam) {
+            setMediaTitle(decodeURIComponent(titleParam));
+            const [type, id] = mediaParam.split('-');
+
+            if ((type === 'movie' || type === 'tv') && id) {
+                const sources = getStreamSources(type as 'movie' | 'tv', parseInt(id));
+                // Auto-load the first source with correct sourceType
+                if (sources.length > 0) {
+                    // Slight delay to ensure join-room event is processed first
+                    setTimeout(() => {
+                        console.log('Emitting initial video state:', sources[0].url);
+                        setVideoUrl(sources[0].url, 'embed');
+                        // Dispatch sources to VideoPlayer
+                        const event = new CustomEvent('load-video-sources', {
+                            detail: { sources }
+                        });
+                        window.dispatchEvent(event);
+                    }, 500);
+                }
+            }
+        }
+
+        setShouldInitVideo(false);
+    }, [shouldInitVideo, socket, searchParams, setVideoUrl]);
+
+    // Parse URL to detect TV show and fetch details
+
+    useEffect(() => {
+        if (!videoState.url) return;
+
+        const parseUrl = (url: string) => {
+            // Patterns to match:
+            // /tv/123/1/1
+            // /tv/123-1-1
+            // s=1&e=1 (requires ID from somewhere else? No, usually ID is in path)
+
+            // Regex for standard path format: .../tv/ID/SEASON/EPISODE
+            const pathRegex = /\/tv\/(\d+)[\/-](\d+)[\/-](\d+)/;
+            const match = url.match(pathRegex);
+
+            if (match) {
+                return {
+                    id: parseInt(match[1]),
+                    season: parseInt(match[2]),
+                    episode: parseInt(match[3])
+                };
+            }
+
+            // Regex for query param format: ...?video_id=ID...s=SEASON...e=EPISODE
+            // or .../embedtv/ID&s=SEASON&e=EPISODE
+            const queryRegex = /(?:video_id=|embedtv\/)(\d+).*?[?&]s=(\d+).*?[?&]e=(\d+)/;
+            const matchQuery = url.match(queryRegex);
+
+            if (matchQuery) {
+                return {
+                    id: parseInt(matchQuery[1]),
+                    season: parseInt(matchQuery[2]),
+                    episode: parseInt(matchQuery[3])
+                };
+            }
+
+            return null;
+        };
+
+        const parsed = parseUrl(videoState.url);
+
+        if (parsed) {
+            setIsTvShow(true);
+            setTvId(parsed.id);
+            setCurrentSeason(parsed.season);
+            setCurrentEpisode(parsed.episode);
+        } else {
+            setIsTvShow(false);
+        }
+    }, [videoState.url]);
+
+    // Fetch TV details when ID changes
+    useEffect(() => {
+        if (!tvId) return;
+
+        const fetchData = async () => {
+            try {
+                const details = await getTVShowDetails(tvId);
+                setTvDetails(details);
+                setSeasons(details.seasons || []);
+            } catch (error) {
+                console.error("Error fetching TV details:", error);
+            }
+        };
+
+        fetchData();
+    }, [tvId]);
+
+
+
+    const handleEpisodeSelect = (season: number, episode: number) => {
+        if (!tvId) return;
+
+        // Construct new URL using the same source pattern if possible, or default to a reliable one
+        // We'll use getStreamSources to get a fresh list for the new episode
+        const sources = getStreamSources('tv', tvId, season, episode);
+
+        if (sources.length > 0) {
+            // Use the same server if possible? 
+            // For now, just load the first one (Vidsrc.me) which is reliable
+            // Or try to match the current provider?
+            // current provider logic is complex to match URL. 
+            // Defaulting to first source is safe.
+            setVideoUrl(sources[0].url, 'embed');
+
+            // Dispatch to local player too? room state listener handles it.
+        }
+    };
+
+
+    const copyInviteLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+    };
+
+    // Show name modal if not joined
+    if (!isJoined) {
+        return (
+            <div style={{
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#050505',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                {/* Background Decorative Elements */}
+                <div style={{
+                    position: 'absolute',
+                    top: '20%',
+                    left: '10%',
+                    width: '300px',
+                    height: '300px',
+                    background: 'var(--primary)',
+                    filter: 'blur(150px)',
+                    opacity: '0.05',
+                    zIndex: 0,
+                    borderRadius: '50%'
+                }}></div>
+                <div style={{
+                    position: 'absolute',
+                    bottom: '10%',
+                    right: '10%',
+                    width: '400px',
+                    height: '400px',
+                    background: 'var(--accent)',
+                    filter: 'blur(180px)',
+                    opacity: '0.05',
+                    zIndex: 0,
+                    borderRadius: '50%'
+                }}></div>
+
+                <div className="glass" style={{
+                    padding: '40px',
+                    width: '450px',
+                    maxWidth: '90%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '24px',
+                    zIndex: 1
+                }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                            width: '64px',
+                            height: '64px',
+                            background: 'var(--primary)',
+                            borderRadius: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 16px',
+                            boxShadow: '0 0 30px var(--primary-glow)'
+                        }}>
+                            <UserCircle size={36} color="#000" />
+                        </div>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: '800', marginBottom: '8px' }}>
+                            Join <span style={{ color: 'var(--primary)' }}>Room</span>
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            Enter your name to join the watch party
+                        </p>
+                    </div>
+
+                    <div style={{
+                        padding: '12px 16px',
+                        background: 'rgba(0, 255, 136, 0.05)',
+                        border: '1px solid rgba(0, 255, 136, 0.2)',
+                        borderRadius: '8px',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            ROOM ID
+                        </div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)', fontFamily: 'monospace' }}>
+                            {params.id}
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div>
+                            <label style={{
+                                display: 'block',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                marginBottom: '8px',
+                                color: 'var(--foreground)'
+                            }}>
+                                Your Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Enter your name..."
+                                value={userName}
+                                onChange={(e) => setUserName(e.target.value)}
+                                autoFocus
+                                maxLength={20}
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--secondary)',
+                                    border: '1px solid var(--glass-border)',
+                                    padding: '14px 16px',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    outline: 'none',
+                                    fontSize: '1rem',
+                                    transition: 'border-color 0.3s ease'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                                onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={!userName.trim()}
+                                style={{
+                                    flex: 1,
+                                    opacity: userName.trim() ? 1 : 0.5,
+                                    cursor: userName.trim() ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                Join Room
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() => router.push('/')}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        paddingTop: '12px',
+                        borderTop: '1px solid var(--glass-border)'
+                    }}>
+                        Ready to watch together? Enter your name to join!
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#050505' }}>
+            {/* Room Header */}
+            <header style={{
+                padding: '12px 24px',
+                background: 'rgba(10, 10, 10, 0.8)',
+                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid var(--glass-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div onClick={() => router.push('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>WE<span style={{ color: 'var(--primary)' }}>WATCH</span></span>
+                    </div>
+                    <div style={{ height: '20px', width: '1px', background: 'var(--glass-border)' }}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                            padding: '4px 12px',
+                            background: 'var(--secondary)',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            border: '1px solid var(--glass-border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <span style={{ color: 'var(--primary)' }}>ROOM:</span> {params.id}
+                        </div>
+                        {mediaTitle && (
+                            <>
+                                <div style={{ height: '20px', width: '1px', background: 'var(--glass-border)' }}></div>
+                                <div style={{
+                                    padding: '4px 12px',
+                                    background: 'rgba(0, 255, 136, 0.1)',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '600',
+                                    border: '1px solid rgba(0, 255, 136, 0.2)',
+                                    color: 'var(--primary)',
+                                    maxWidth: '300px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    🎬 {mediaTitle}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <button
+                            onClick={() => setShowBrowseModal(true)}
+                            className="btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', padding: '8px 16px' }}
+                        >
+                            <Film size={16} />
+                            Browse Movies
+                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            <Users size={18} />
+                            <span>{participants.length} watching</span>
+                        </div>
+                        <button
+                            onClick={copyInviteLink}
+                            className="btn-secondary"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.85rem',
+                                padding: '8px 16px',
+                                borderColor: copySuccess ? 'var(--primary)' : 'var(--glass-border)'
+                            }}
+                        >
+                            <Share2 size={16} />
+                            {copySuccess ? 'Link Copied!' : 'Invite Friends'}
+                        </button>
+                        <button
+                            className="btn-secondary"
+                            style={{ width: '36px', height: '36px', padding: 0, justifyContent: 'center' }}
+                            onClick={() => setShowSettingsModal(true)}
+                        >
+                            <Settings size={18} />
+                        </button>
+                        <button
+                            onClick={() => router.push('/')}
+                            style={{
+                                background: 'rgba(255, 68, 68, 0.1)',
+                                color: '#ff4444',
+                                border: '1px solid rgba(255, 68, 68, 0.2)',
+                                borderRadius: '8px',
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontWeight: '600',
+                                fontSize: '0.85rem'
+                            }}
+                        >
+                            <LogOut size={16} />
+                            Leave Room
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Layout */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                {/* Playback Area */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', gap: '20px', overflowY: 'auto' }}>
+                    <VideoPlayer />
+
+                    {/* Episode Selector for TV Shows */}
+                    {isTvShow && tvId && (
+                        <div style={{ marginTop: '-20px' }}>
+                            <EpisodeSelector
+                                seasons={seasons}
+                                currentSeason={currentSeason}
+                                currentEpisode={currentEpisode}
+                                onEpisodeSelect={handleEpisodeSelect}
+                                tvId={tvId}
+                                tvTitle={mediaTitle}
+                            />
+                        </div>
+                    )}
+
+                    <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Stream Controls</h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {videoState.sourceType === 'embed' ? (
+                                    <div style={{ padding: '4px 10px', background: 'rgba(255, 170, 0, 0.1)', color: '#ffaa00', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(255, 170, 0, 0.2)' }}>
+                                        SYNC LIMITED (EMBED)
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: '4px 10px', background: 'rgba(0, 255, 136, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
+                                        LIVE SYNC ON
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            {videoState.sourceType === 'embed'
+                                ? "You are watching via an external embed server. Play/Pause/Seek sync is not available for this source. Episode selection IS synced."
+                                : "Any watcher can control the movie. Changes will be instantly synced across all participants."
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                {/* Sidebar */}
+                <div style={{ width: '400px', borderLeft: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
+                    <ChatSystem />
+                </div>
+            </div>
+
+            {/* Browse Modal */}
+            <BrowseModal
+                isOpen={showBrowseModal}
+                onClose={() => setShowBrowseModal(false)}
+                onSelect={(media) => {
+                    // Update video URL
+                    // Construct URL and call setVideoUrl
+                    // Determine if Movie or TV
+                    const isMovie = 'title' in media;
+                    const type = isMovie ? 'movie' : 'tv';
+                    const title = isMovie ? (media as any).title : (media as any).name;
+
+                    // Update title
+                    setMediaTitle(title);
+
+                    if (type === 'movie') {
+                        // For movie, load sources
+                        const sources = getStreamSources('movie', media.id);
+                        if (sources.length > 0) {
+                            setVideoUrl(sources[0].url, 'embed');
+                        }
+                    } else {
+                        // For TV, load season 1 episode 1
+                        const sources = getStreamSources('tv', media.id, 1, 1);
+                        if (sources.length > 0) {
+                            setVideoUrl(sources[0].url, 'embed');
+                        }
+                    }
+
+                    setShowBrowseModal(false);
+                }}
+            />
+            {/* Room Settings Modal */}
+            <RoomSettingsModal
+                isOpen={showSettingsModal}
+                onClose={() => setShowSettingsModal(false)}
+                isHost={participants.find(p => p.id === socket?.id)?.isHost || false}
+                persistent={roomSettings?.persistent || false}
+                onTogglePersistence={(enabled) => updateRoomSettings({ persistent: enabled })}
+            />
+        </div>
+    );
+}
