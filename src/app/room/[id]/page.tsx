@@ -51,12 +51,36 @@ export default function RoomPage() {
     const handleJoinRoom = (e: React.FormEvent) => {
         e.preventDefault();
         if (userName.trim() && params.id) {
+            // Persist name for this room
+            localStorage.setItem(`wewatch_name_${params.id}`, userName.trim());
+
             joinRoom(params.id as string, userName.trim());
             setIsJoined(true);
 
             // Trigger video initialization check
             setShouldInitVideo(true);
         }
+    };
+
+    // Auto-rejoin on refresh
+    useEffect(() => {
+        if (!params.id || isJoined) return;
+
+        const savedName = localStorage.getItem(`wewatch_name_${params.id}`);
+        if (savedName) {
+            console.log('Auto-rejoining with saved name:', savedName);
+            setUserName(savedName);
+            joinRoom(params.id as string, savedName);
+            setIsJoined(true);
+            setShouldInitVideo(true);
+        }
+    }, [params.id, joinRoom, isJoined]);
+
+    const handleLeaveRoom = () => {
+        if (params.id) {
+            localStorage.removeItem(`wewatch_name_${params.id}`);
+        }
+        router.push('/');
     };
 
     // Auto-load video when socket is ready and user has joined
@@ -425,7 +449,7 @@ export default function RoomPage() {
                     </button>
 
                     <button
-                        onClick={() => router.push('/')}
+                        onClick={handleLeaveRoom}
                         className="leave-btn"
                     >
                         <LogOut size={16} />
