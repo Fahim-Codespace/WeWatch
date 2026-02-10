@@ -50,7 +50,7 @@ export default function RoomPage() {
 
     const handleJoinRoom = (e: React.FormEvent) => {
         e.preventDefault();
-        if (userName.trim() && params.id) {
+        if (userName.trim() && params.id && socket) {
             // Persist name for this room
             localStorage.setItem(`wewatch_name_${params.id}`, userName.trim());
 
@@ -64,7 +64,7 @@ export default function RoomPage() {
 
     // Auto-rejoin on refresh
     useEffect(() => {
-        if (!params.id || isJoined) return;
+        if (!params.id || isJoined || !socket) return;
 
         const savedName = localStorage.getItem(`wewatch_name_${params.id}`);
         if (savedName) {
@@ -74,7 +74,7 @@ export default function RoomPage() {
             setIsJoined(true);
             setShouldInitVideo(true);
         }
-    }, [params.id, joinRoom, isJoined]);
+    }, [params.id, joinRoom, isJoined, socket]);
 
     const handleLeaveRoom = () => {
         if (params.id) {
@@ -326,14 +326,14 @@ export default function RoomPage() {
                             <button
                                 type="submit"
                                 className="btn-primary"
-                                disabled={!userName.trim()}
+                                disabled={!userName.trim() || !socket}
                                 style={{
                                     flex: 1,
-                                    opacity: userName.trim() ? 1 : 0.5,
-                                    cursor: userName.trim() ? 'pointer' : 'not-allowed'
+                                    opacity: (userName.trim() && socket) ? 1 : 0.5,
+                                    cursor: (userName.trim() && socket) ? 'pointer' : 'not-allowed'
                                 }}
                             >
-                                Join Room
+                                {socket ? 'Join Room' : 'Connecting...'}
                             </button>
                             <button
                                 type="button"
@@ -373,9 +373,9 @@ export default function RoomPage() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <button
-                        onClick={() => router.push('/')}
+                        onClick={() => router.back()}
                         className="btn-back"
-                        title="Go back to Home"
+                        title="Go back"
                     >
                         <ArrowLeft size={20} />
                     </button>
