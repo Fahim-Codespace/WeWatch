@@ -16,6 +16,11 @@ export function getStreamSources(
         // Movie sources - 12 servers for maximum reliability
         sources.push(
             {
+                label: 'Vidsrc.cc',
+                url: `https://vidsrc.cc/v2/embed/movie/${tmdbId}`,
+                health: 'unknown'
+            },
+            {
                 label: 'Vidsrc.to',
                 url: `https://vidsrc.to/embed/movie/${tmdbId}`,
                 health: 'unknown'
@@ -69,16 +74,16 @@ export function getStreamSources(
                 label: 'VidSrc Pro',
                 url: `https://vidsrc.pro/embed/movie/${tmdbId}`,
                 health: 'unknown'
-            },
-            {
-                label: 'Vidsrc.cc',
-                url: `https://vidsrc.cc/v2/embed/movie/${tmdbId}`,
-                health: 'unknown'
             }
         );
     } else if (mediaType === 'tv' && season !== undefined && episode !== undefined) {
         // TV show sources - 12 servers for maximum reliability
         sources.push(
+            {
+                label: 'Vidsrc.cc',
+                url: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`,
+                health: 'unknown'
+            },
             {
                 label: 'Vidsrc.to',
                 url: `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`,
@@ -132,11 +137,6 @@ export function getStreamSources(
             {
                 label: 'VidSrc Pro',
                 url: `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}`,
-                health: 'unknown'
-            },
-            {
-                label: 'Vidsrc.cc',
-                url: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`,
                 health: 'unknown'
             }
         );
