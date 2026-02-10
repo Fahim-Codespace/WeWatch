@@ -32,6 +32,8 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
     const [availableQualities, setAvailableQualities] = useState<{ index: number; height: number; label: string }[]>([]);
     const [currentQuality, setCurrentQuality] = useState(-1); // -1 means auto
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [isSafetyMode, setIsSafetyMode] = useState(true);
+    const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
 
     useEffect(() => {
@@ -281,18 +283,57 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
             {!activeStream && videoState.url ? (
                 videoState.sourceType === 'embed' ? (
                     // Render iframe for embed sources (VidSrc, 2Embed, etc.)
-                    <iframe
-                        key={videoState.url}
-                        src={videoState.url}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            border: 'none'
-                        }}
-                        referrerPolicy="origin"
-                        allowFullScreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    />
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                        {isSafetyMode && shieldActive && (
+                            <div
+                                onClick={() => setShieldActive(false)}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    zIndex: 20,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'rgba(0,0,0,0.01)', // Almost invisible but catches clicks
+                                }}
+                            >
+                                <div style={{
+                                    padding: '12px 24px',
+                                    background: 'rgba(0,0,0,0.7)',
+                                    backdropFilter: 'blur(10px)',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: '#fff',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    pointerEvents: 'none', // Label doesn't block click to parent
+                                    opacity: 0.8
+                                }}>
+                                    Shield Active: Click anywhere to unlock player
+                                </div>
+                            </div>
+                        )}
+                        <iframe
+                            key={videoState.url}
+                            src={videoState.url}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none'
+                            }}
+                            referrerPolicy="origin"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            sandbox={isSafetyMode
+                                ? "allow-scripts allow-same-origin allow-forms"
+                                : undefined
+                            }
+                        />
+                    </div>
                 ) : (
                     // Render video element for direct URLs and local files
                     <video
