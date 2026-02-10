@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: wewatch-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGIN
+        sync: false
+        placeholder: "https://your-vercel-domain.vercel.app"
+      - key: PORT
+        value: 10000
