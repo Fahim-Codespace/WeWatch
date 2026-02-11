@@ -365,7 +365,7 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
                             Open File
                             <input type="file" accept="video/*" style={{ display: 'none' }} onChange={handleLocalFile} />
                         </label>
-                        <button className="btn-primary" onClick={() => setIsUrlModalOpen(true)}>
+                        <button className="btn-secondary" onClick={() => setIsUrlModalOpen(true)}>
                             <LinkIcon size={18} />
                             Paste URL
                         </button>

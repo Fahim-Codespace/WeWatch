@@ -522,23 +522,7 @@ export default function RoomPage() {
                 <div className="video-area">
                     <VideoPlayer />
 
-                    {/* Sync Info Banner (Embedded in flow) */}
-                    <div className="glass sync-banner">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: '700' }}>Sync Status</h3>
-                            {videoState.sourceType === 'embed' ? (
-                                <div className="badge warning">SYNC LIMITED (EMBED)</div>
-                            ) : (
-                                <div className="badge success">LIVE SYNC ON</div>
-                            )}
-                        </div>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '8px' }}>
-                            {videoState.sourceType === 'embed'
-                                ? "Episode selection is synced. Play/Pause/Seek sync is limited for external embeds."
-                                : "Playback and seeking are instantly synced across all participants."
-                            }
-                        </p>
-                    </div>
+
                 </div>
 
                 {/* Sidebar */}
