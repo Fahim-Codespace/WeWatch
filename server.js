@@ -52,6 +52,7 @@ io.on('connection', (socket) => {
                     currentTime: 0,
                     sourceType: 'url'
                 },
+                media: null, // Track current media { type, id, title, poster }
                 settings: {
                     persistent: false
                 }
@@ -71,6 +72,7 @@ io.on('connection', (socket) => {
         socket.emit('room-state', {
             participants: room.participants,
             videoState: room.videoState,
+            media: room.media, // Send current media
             settings: room.settings
         });
 
@@ -89,6 +91,17 @@ io.on('connection', (socket) => {
         if (room) {
             room.settings = { ...room.settings, ...settings };
             io.to(currentRoomId).emit('room-settings-updated', room.settings);
+        }
+    });
+
+    // Media Logic
+    socket.on('change-media', (media) => {
+        if (!currentRoomId) return;
+        const room = rooms.get(currentRoomId);
+        if (room) {
+            room.media = media; // Update room media state
+            // Broadcast to EVERYONE including sender (to confirm sync)
+            io.to(currentRoomId).emit('media-changed', media);
         }
     });
 

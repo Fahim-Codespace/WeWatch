@@ -28,7 +28,9 @@ export default function RoomPage() {
         currentUserName,
         participants,
         roomSettings,
-        updateRoomSettings
+        updateRoomSettings,
+        changeMedia,
+        media
     } = useRoom();
     const [isJoined, setIsJoined] = useState(false);
     const [userName, setUserName] = useState('');
@@ -186,6 +188,23 @@ export default function RoomPage() {
             }
         }
     }, [videoState.url]);
+
+    // Sync Media Context with URL/Title
+    useEffect(() => {
+        if (media) {
+            setMediaTitle(media.title);
+
+            // Validate if we need to update URL (avoid infinite loops)
+            // If the current ID in params doesn't match media.id, update URL
+            const currentMediaParam = searchParams.get('media'); // e.g. movie-123
+            const newMediaParam = `${media.type}-${media.id}`;
+
+            if (currentMediaParam !== newMediaParam) {
+                const newUrl = `/watch?media=${newMediaParam}&title=${encodeURIComponent(media.title)}`;
+                window.history.replaceState(null, '', newUrl);
+            }
+        }
+    }, [media, searchParams]);
 
     // Fetch TV details when ID changes
     useEffect(() => {
@@ -705,10 +724,27 @@ export default function RoomPage() {
             <BrowseModal
                 isOpen={showBrowseModal}
                 onClose={() => setShowBrowseModal(false)}
-                onSelect={(media) => {
-                    const isMovie = 'title' in media;
+                onSelect={(selectedMedia) => {
+                    const isMovie = 'title' in selectedMedia;
                     const type = isMovie ? 'movie' : 'tv';
-                    router.push(`/media/${type}/${media.id}`);
+                    const title = isMovie ? (selectedMedia as any).title : (selectedMedia as any).name;
+
+                    // 1. Sync Metadata
+                    changeMedia({
+                        type,
+                        id: selectedMedia.id,
+                        title,
+                        poster: selectedMedia.poster_path || undefined
+                    });
+
+                    // 2. Sync Video
+                    const sources = getStreamSources(type, selectedMedia.id);
+                    if (sources.length > 0) {
+                        setVideoUrl(sources[0].url, 'embed');
+                    }
+
+                    // 3. Update Local URL immediately for responsiveness
+                    router.push(`/watch?media=${type}-${selectedMedia.id}&title=${encodeURIComponent(title)}`);
                     setShowBrowseModal(false);
                 }}
             />
