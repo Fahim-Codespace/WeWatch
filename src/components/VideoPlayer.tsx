@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, MessageSquare } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, MessageSquare, Film } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
@@ -646,65 +646,58 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 activeServerIndex={activeServerIndex}
                 onServerChange={switchServer}
             />
-        </div>
-    )
-}
 
-{/* Floating Chat Trigger for Fullscreen (Positioned near controls) */ }
-{
-    isFullscreen && (
-        <div style={{
-            position: 'absolute',
-            bottom: '30px',
-            right: '80px', // Positioned left of where the maximize button usually is, or adjusted
-            zIndex: 200,
-            opacity: showControls ? 1 : 0,
-            transition: 'opacity 0.4s ease',
-            pointerEvents: showControls ? 'auto' : 'none'
-        }}>
-            <button
-                onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                style={{
-                    background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(0,0,0,0.6)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    color: isChatOverlayOpen ? '#000' : '#fff',
-                    cursor: 'pointer',
-                    padding: '10px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backdropFilter: 'blur(10px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                }}
-                title="Chat"
-            >
-                <MessageSquare size={24} />
-            </button>
-            {messages.length > lastMessageCountRef.current && !isChatOverlayOpen && (
+            {/* Floating Chat Trigger for Fullscreen (Positioned near controls) */}
+            {isFullscreen && (
                 <div style={{
                     position: 'absolute',
-                    top: '-5px',
-                    right: '-5px',
-                    width: '12px',
-                    height: '12px',
-                    background: '#ff4444',
-                    borderRadius: '50%',
-                    border: '2px solid #000'
-                }} />
+                    bottom: '30px',
+                    right: '80px', // Positioned left of where the maximize button usually is, or adjusted
+                    zIndex: 200,
+                    opacity: showControls ? 1 : 0,
+                    transition: 'opacity 0.4s ease',
+                    pointerEvents: showControls ? 'auto' : 'none'
+                }}>
+                    <button
+                        onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                        style={{
+                            background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(0,0,0,0.6)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: isChatOverlayOpen ? '#000' : '#fff',
+                            cursor: 'pointer',
+                            padding: '10px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
+                        title="Chat"
+                    >
+                        <MessageSquare size={24} />
+                    </button>
+                    {messages.length > lastMessageCountRef.current && !isChatOverlayOpen && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-5px',
+                            right: '-5px',
+                            width: '12px',
+                            height: '12px',
+                            background: '#ff4444',
+                            borderRadius: '50%',
+                            border: '2px solid #000'
+                        }} />
+                    )}
+                </div>
             )}
+            {/* Chat Overlay - Rendered LAST to be on top of everything, including overlay controls */}
+            <ChatOverlay
+                isOpen={isChatOverlayOpen}
+                onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                showFloatingButton={false}
+            />
         </div>
-    )
-}
-{/* Chat Overlay - Rendered LAST to be on top of everything, including overlay controls */ }
-<ChatOverlay
-    isOpen={isChatOverlayOpen}
-    onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-    showFloatingButton={false}
-/>
-        </div >
     );
 }
 
-// Adding some missing icons from lucide
-import { Film } from 'lucide-react';
