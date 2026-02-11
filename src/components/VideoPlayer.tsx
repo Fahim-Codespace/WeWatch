@@ -525,7 +525,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
             )}
 
             {/* Video Overlay / Controls - Only show for non-embed sources AND when there is a video/stream */}
-            {((videoState.sourceType !== 'embed' && (videoState.url || activeStream)) || isFullscreen) && (
+            {(videoState.url || activeStream) && ((videoState.sourceType !== 'embed') || isFullscreen) && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
