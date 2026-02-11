@@ -8,6 +8,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import ChatSystem from '@/components/ChatSystem';
 import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
+import InviteModal from '@/components/InviteModal';
 import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search, ArrowLeft } from 'lucide-react';
 import { getStreamSources } from '@/lib/streamSources';
 import { getTrending, getTVShowDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
@@ -33,6 +34,7 @@ export default function RoomPage() {
     const [userName, setUserName] = useState('');
     const [mediaTitle, setMediaTitle] = useState('');
     const [showBrowseModal, setShowBrowseModal] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
     const [browseResults, setBrowseResults] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -491,7 +493,7 @@ export default function RoomPage() {
                     </div>
 
                     <button
-                        onClick={copyInviteLink}
+                        onClick={() => setShowInviteModal(true)}
                         className="btn-secondary invite-btn"
                         title="Invite Friends"
                     >
@@ -712,6 +714,12 @@ export default function RoomPage() {
                 isHost={participants.find(p => p.id === socket?.id)?.isHost || false}
                 persistent={roomSettings?.persistent || false}
                 onTogglePersistence={(enabled) => updateRoomSettings({ persistent: enabled })}
+            />
+
+            {/* Invite Modal */}
+            <InviteModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
             />
         </div>
     );

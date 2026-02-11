@@ -35,28 +35,27 @@ export default function WatchSidebar({
     onServerSelect,
     activeServerUrl
 }: WatchSidebarProps) {
-    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat'>(
-        mediaType === 'tv' ? 'episodes' : 'servers'
-    );
+    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat'>('chat');
     const [isOpen, setIsOpen] = useState(true);
 
-    // If chat is active (room), default to chat? Or stick to episodes?
-    // Let's stick to 'episodes' for TV, 'servers' for Movies initially.
+    // Determine default tab on mount logic modification if needed, but 'chat' is a safe default for a social room.
+    // If not in a room (just browsing?), maybe different, but sidebar implies context. 
+    // The previous logic was: mediaType === 'tv' ? 'episodes' : 'servers'
+
+    // Let's refine the initial state slightly to prefer Chat if roomId exists, else fallback.
+    // However, since this component is mostly used IN a room, 'chat' is the requested primary.
 
     return (
         <div className={`watch-sidebar ${isOpen ? 'open' : 'closed'}`}>
-            {/* Toggle Button (Absolute, outside if closed?) */}
-            {/* Actually handling toggle via parent grid might be better, but let's keep it self-contained for now */}
-
             {/* Tabs Header */}
             <div className="sidebar-header">
-                {mediaType === 'tv' && (
+                {roomId && (
                     <button
-                        onClick={() => setActiveTab('episodes')}
-                        className={`sidebar-tab ${activeTab === 'episodes' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('chat')}
+                        className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
                     >
-                        <List size={18} />
-                        <span>Episodes</span>
+                        <MessageSquare size={18} />
+                        <span>Chat</span>
                     </button>
                 )}
 
@@ -68,13 +67,13 @@ export default function WatchSidebar({
                     <span>Servers</span>
                 </button>
 
-                {roomId && (
+                {mediaType === 'tv' && (
                     <button
-                        onClick={() => setActiveTab('chat')}
-                        className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('episodes')}
+                        className={`sidebar-tab ${activeTab === 'episodes' ? 'active' : ''}`}
                     >
-                        <MessageSquare size={18} />
-                        <span>Chat</span>
+                        <List size={18} />
+                        <span>Episodes</span>
                     </button>
                 )}
             </div>
@@ -82,25 +81,10 @@ export default function WatchSidebar({
             {/* Content Area */}
             <div className="sidebar-content">
 
-                {/* Episodes Tab */}
-                {activeTab === 'episodes' && mediaType === 'tv' && (
-                    <div style={{ padding: '0' }}>
-                        {seasons && seasons.length > 0 && tvId && tvTitle ? (
-                            <EpisodeSelector
-                                tvId={tvId}
-                                tvTitle={tvTitle}
-                                currentSeason={currentSeason || 1}
-                                currentEpisode={currentEpisode || 1}
-                                seasons={seasons}
-                                onEpisodeSelect={onEpisodeSelect || (() => { })}
-                            // Pass a prop to EpisodeSelector to style it for sidebar?
-                            // Assuming EpisodeSelector is responsive.
-                            />
-                        ) : (
-                            <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                                Loading episodes...
-                            </div>
-                        )}
+                {/* Chat Tab */}
+                {activeTab === 'chat' && roomId && (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <ChatSystem />
                     </div>
                 )}
 
@@ -148,10 +132,23 @@ export default function WatchSidebar({
                     </div>
                 )}
 
-                {/* Chat Tab */}
-                {activeTab === 'chat' && roomId && (
-                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <ChatSystem />
+                {/* Episodes Tab */}
+                {activeTab === 'episodes' && mediaType === 'tv' && (
+                    <div style={{ padding: '0' }}>
+                        {seasons && seasons.length > 0 && tvId && tvTitle ? (
+                            <EpisodeSelector
+                                tvId={tvId}
+                                tvTitle={tvTitle}
+                                currentSeason={currentSeason || 1}
+                                currentEpisode={currentEpisode || 1}
+                                seasons={seasons}
+                                onEpisodeSelect={onEpisodeSelect || (() => { })}
+                            />
+                        ) : (
+                            <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                Loading episodes...
+                            </div>
+                        )}
                     </div>
                 )}
 
