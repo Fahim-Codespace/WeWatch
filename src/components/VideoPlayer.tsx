@@ -72,6 +72,21 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         };
     }, []);
 
+    // Fallback check for fullscreen (some browsers/iframes don't fire events reliably)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Check standard API or dimension match
+            const isFull = !!document.fullscreenElement ||
+                (typeof window !== 'undefined' && window.innerWidth === screen.width && window.innerHeight === screen.height);
+
+            if (isFull !== isFullscreen) {
+                console.log('Fullscreen fallback check:', isFull);
+                setIsFullscreen(isFull);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isFullscreen]);
+
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
             const formattedSources = initialSources.map(s => ({
