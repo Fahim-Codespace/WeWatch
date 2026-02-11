@@ -1,0 +1,23 @@
+
+> wewatch@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 11.8s
+  Running TypeScript ...
+Failed to compile.
+
+./src/components/MediaCarousel.tsx:43:49
+Type error: Object literal may only specify known properties, and 'group' does not exist in type 'Properties<string | number, string & {}>'.
+
+  41 |
+  42 |             {/* Carousel Container */}
+> 43 |             <div style={{ position: 'relative', group: 'carousel' }}>
+     |                                                 ^
+  44 |                 {/* Left Arrow */}
+  45 |                 <button
+  46 |                     onClick={() => scroll('left')}
+Next.js build worker exited with code: 1 and signal: null

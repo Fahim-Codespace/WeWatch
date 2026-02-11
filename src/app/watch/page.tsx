@@ -94,13 +94,6 @@ function WatchPageContent() {
             {/* Minimalist Floating Header */}
             <header className="watch-header">
                 <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button
-                        onClick={() => router.push('/')}
-                        className="btn-back"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-
                     {mediaTitle && (
                         <div className="title-container">
                             <span className="media-title">
@@ -198,21 +191,7 @@ function WatchPageContent() {
                     pointer-events: none;
                 }
 
-                .btn-back {
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    backdrop-filter: blur(10px);
-                    color: #fff;
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-                .btn-back:hover { background: rgba(255,255,255,0.2); }
+
 
                 .title-container {
                     display: flex;

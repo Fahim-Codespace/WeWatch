@@ -372,13 +372,18 @@ export default function RoomPage() {
                 alignItems: 'center'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <button
-                        onClick={() => router.back()}
-                        className="btn-back"
-                        title="Go back"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
+                    {mediaId && (
+                        <button
+                            onClick={() => {
+                                const type = isTvShow ? 'tv' : 'movie';
+                                router.push(`/media/${type}/${mediaId}`);
+                            }}
+                            className="btn-back"
+                            title="Back to details"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
 
                     <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
 
