@@ -48,11 +48,29 @@ export default function RoomPage() {
     const [seasons, setSeasons] = useState<Season[]>([]);
     const [tvDetails, setTvDetails] = useState<any>(null);
 
+    const [rememberName, setRememberName] = useState(false);
+
+    // Load saved global name on mount
+    useEffect(() => {
+        const savedGlobalName = localStorage.getItem('wewatch_global_username');
+        if (savedGlobalName) {
+            setUserName(savedGlobalName);
+            setRememberName(true);
+        }
+    }, []);
+
     const handleJoinRoom = (e: React.FormEvent) => {
         e.preventDefault();
         if (userName.trim() && params.id && socket) {
-            // Persist name for this room
+            // Persist name for this room (existing logic)
             localStorage.setItem(`wewatch_name_${params.id}`, userName.trim());
+
+            // Handle global remember name
+            if (rememberName) {
+                localStorage.setItem('wewatch_global_username', userName.trim());
+            } else {
+                localStorage.removeItem('wewatch_global_username');
+            }
 
             joinRoom(params.id as string, userName.trim());
             setIsJoined(true);
@@ -321,6 +339,29 @@ export default function RoomPage() {
                                 onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
                             />
                         </div>
+
+                        {/* Remember Name Checkbox */}
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-muted)'
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={rememberName}
+                                onChange={(e) => setRememberName(e.target.checked)}
+                                style={{
+                                    accentColor: 'var(--primary)',
+                                    width: '16px',
+                                    height: '16px',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                            Wanna remember the name for future joins?
+                        </label>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button
