@@ -21,6 +21,7 @@ function WatchPageContent() {
     const [currentSeason, setCurrentSeason] = useState(1);
     const [currentEpisode, setCurrentEpisode] = useState(1);
     const [seasons, setSeasons] = useState<any[]>([]);
+    const [isSandboxEnabled, setIsSandboxEnabled] = useState(true);
 
     useEffect(() => {
         const mediaParam = searchParams.get('media');
@@ -147,7 +148,7 @@ function WatchPageContent() {
                         </div>
                     ) : (
                         <div style={{ width: '100%', height: '100%' }}>
-                            <VideoPlayer initialSources={sources} />
+                            <VideoPlayer initialSources={sources} isSandboxEnabled={isSandboxEnabled} />
                         </div>
                     )}
                 </div>
@@ -165,6 +166,8 @@ function WatchPageContent() {
                     sources={sources}
                     onServerSelect={handleServerSelect}
                     activeServerUrl={videoState.url}
+                    isSandboxEnabled={isSandboxEnabled}
+                    onToggleSandbox={setIsSandboxEnabled}
                 />
 
             </div>
