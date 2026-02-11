@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, MessageSquare } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
@@ -38,6 +38,16 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
     const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
@@ -582,6 +592,25 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Settings size={20} />
                             </button>
+                            {isFullscreen && (
+                                <button
+                                    onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                                    style={{
+                                        background: isChatOverlayOpen ? 'var(--primary)' : 'none',
+                                        border: 'none',
+                                        color: isChatOverlayOpen ? '#000' : '#fff',
+                                        cursor: 'pointer',
+                                        padding: '6px',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                    title="Chat"
+                                >
+                                    <MessageSquare size={20} />
+                                </button>
+                            )}
                             <button
                                 onClick={toggleFullScreen}
                                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
@@ -610,6 +639,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
             <ChatOverlay
                 isOpen={isChatOverlayOpen}
                 onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                showFloatingButton={false}
             />
         </div>
     );

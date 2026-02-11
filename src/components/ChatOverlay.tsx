@@ -8,6 +8,7 @@ import { useRoom } from '@/context/RoomContext';
 interface ChatOverlayProps {
     isOpen: boolean;
     onToggle: () => void;
+    showFloatingButton?: boolean;
 }
 
 // Reuse formatTime from ChatSystem (or move to helper)
@@ -17,7 +18,7 @@ const formatTime = (seconds: number) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-export default function ChatOverlay({ isOpen, onToggle }: ChatOverlayProps) {
+export default function ChatOverlay({ isOpen, onToggle, showFloatingButton = true }: ChatOverlayProps) {
     const { messages, sendMessage, sendVoiceMessage, currentUserName } = useRoom();
     const [inputText, setInputText] = useState('');
     const [isRecording, setIsRecording] = useState(false);
@@ -103,7 +104,7 @@ export default function ChatOverlay({ isOpen, onToggle }: ChatOverlayProps) {
     return (
         <>
             {/* Draggable Toggle Button (Visible when closed) */}
-            {!isOpen && (
+            {!isOpen && showFloatingButton && (
                 <motion.button
                     drag
                     dragMomentum={false}
