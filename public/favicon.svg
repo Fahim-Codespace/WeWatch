@@ -16,18 +16,6 @@
   <!-- Main green square -->
   <rect width="32" height="32" rx="8" fill="#00ff88"/>
   
-  <!-- Film icon in black -->
-  <g transform="translate(7, 7)">
-    <!-- Film reel outline -->
-    <rect x="2" y="2" width="14" height="14" rx="2" stroke="#000000" stroke-width="1.5" fill="none"/>
-    
-    <!-- Film strip perforations -->
-    <rect x="3.5" y="4" width="2" height="2" fill="#000000"/>
-    <rect x="12.5" y="4" width="2" height="2" fill="#000000"/>
-    <rect x="3.5" y="12" width="2" height="2" fill="#000000"/>
-    <rect x="12.5" y="12" width="2" height="2" fill="#000000"/>
-    
-    <!-- Center play symbol -->
-    <polygon points="8,7 8,11 11,9" fill="#000000"/>
-  </g>
+  <!-- Black square inside -->
+  <rect x="10" y="10" width="12" height="12" rx="2" fill="#000000"/>
 </svg>
