@@ -87,6 +87,21 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         return () => clearInterval(interval);
     }, [isFullscreen]);
 
+    // Fallback check for fullscreen (some browsers/iframes don't fire events reliably)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Check standard API or dimension match
+            const isFull = !!document.fullscreenElement ||
+                (typeof window !== 'undefined' && window.innerWidth === screen.width && window.innerHeight === screen.height);
+
+            if (isFull !== isFullscreen) {
+                console.log('Fullscreen fallback check:', isFull);
+                setIsFullscreen(isFull);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isFullscreen]);
+
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
             const formattedSources = initialSources.map(s => ({
@@ -636,13 +651,41 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Maximize size={20} />
                             </button>
-                            <button
-                                onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                                title="Chat"
-                            >
-                                <MessageSquare size={20} />
-                            </button>
+                            {/* Always render chat button in controls, but only visible/active if in fullscreen or if we want it always accessible */}
+                            {(isFullscreen || true) && (
+                                <button
+                                    onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                                    style={{
+                                        background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        color: isChatOverlayOpen ? '#000' : '#fff',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginLeft: '10px',
+                                        position: 'relative',
+                                        display: isFullscreen ? 'flex' : 'none' // Strict visibility check via display
+                                    }}
+                                    title="Chat"
+                                >
+                                    <MessageSquare size={20} />
+                                    {messages.length > lastMessageCountRef.current && !isChatOverlayOpen && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '-2px',
+                                            right: '-2px',
+                                            width: '8px',
+                                            height: '8px',
+                                            background: '#ff4444',
+                                            borderRadius: '50%',
+                                            border: '1px solid #000'
+                                        }} />
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -662,50 +705,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 onServerChange={switchServer}
             />
 
-            {/* Floating Chat Trigger for Fullscreen (Positioned near controls) */}
-            {isFullscreen && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: '30px',
-                    right: '80px', // Positioned left of where the maximize button usually is, or adjusted
-                    zIndex: 200,
-                    opacity: showControls ? 1 : 0,
-                    transition: 'opacity 0.4s ease',
-                    pointerEvents: showControls ? 'auto' : 'none'
-                }}>
-                    <button
-                        onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                        style={{
-                            background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(0,0,0,0.6)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: isChatOverlayOpen ? '#000' : '#fff',
-                            cursor: 'pointer',
-                            padding: '10px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backdropFilter: 'blur(10px)',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                        }}
-                        title="Chat"
-                    >
-                        <MessageSquare size={24} />
-                    </button>
-                    {messages.length > lastMessageCountRef.current && !isChatOverlayOpen && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '-5px',
-                            right: '-5px',
-                            width: '12px',
-                            height: '12px',
-                            background: '#ff4444',
-                            borderRadius: '50%',
-                            border: '2px solid #000'
-                        }} />
-                    )}
-                </div>
-            )}
             {/* Chat Overlay - Rendered LAST to be on top of everything, including overlay controls */}
             <ChatOverlay
                 isOpen={isChatOverlayOpen}
