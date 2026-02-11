@@ -42,11 +42,22 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+            const isFull = !!document.fullscreenElement;
+            console.log('Fullscreen change:', isFull);
+            setIsFullscreen(isFull);
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari/Chrome legacy
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange); // Firefox legacy
+        document.addEventListener('msfullscreenchange', handleFullscreenChange); // IE/Edge legacy
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
     }, []);
 
     useEffect(() => {
@@ -592,31 +603,32 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Settings size={20} />
                             </button>
-                            {isFullscreen && (
-                                <button
-                                    onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                                    style={{
-                                        background: isChatOverlayOpen ? 'var(--primary)' : 'none',
-                                        border: 'none',
-                                        color: isChatOverlayOpen ? '#000' : '#fff',
-                                        cursor: 'pointer',
-                                        padding: '6px',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                    title="Chat"
-                                >
-                                    <MessageSquare size={20} />
-                                </button>
-                            )}
                             <button
                                 onClick={toggleFullScreen}
                                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
                             >
                                 <Maximize size={20} />
                             </button>
+                            {isFullscreen && (
+                                <button
+                                    onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+                                    style={{
+                                        background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        color: isChatOverlayOpen ? '#000' : '#fff',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginLeft: '10px'
+                                    }}
+                                    title="Chat"
+                                >
+                                    <MessageSquare size={20} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
