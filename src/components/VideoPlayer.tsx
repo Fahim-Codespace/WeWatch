@@ -662,7 +662,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                                         cursor: 'pointer',
                                         padding: '8px',
                                         borderRadius: '8px',
-                                        display: 'flex',
+                                        borderRadius: '8px',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         marginLeft: '10px',
