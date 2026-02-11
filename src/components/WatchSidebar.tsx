@@ -20,6 +20,8 @@ interface WatchSidebarProps {
     sources: any[];
     onServerSelect: (url: string) => void;
     activeServerUrl?: string;
+    isSandboxEnabled?: boolean;
+    onToggleSandbox?: (enabled: boolean) => void;
 }
 
 export default function WatchSidebar({
@@ -33,7 +35,9 @@ export default function WatchSidebar({
     onEpisodeSelect,
     sources,
     onServerSelect,
-    activeServerUrl
+    activeServerUrl,
+    isSandboxEnabled = true,
+    onToggleSandbox
 }: WatchSidebarProps) {
     const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat'>('chat');
     const [isOpen, setIsOpen] = useState(true);
@@ -91,9 +95,42 @@ export default function WatchSidebar({
                 {/* Servers Tab */}
                 {activeTab === 'servers' && (
                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            Stream Sources
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                                Stream Sources
+                            </h3>
+                            {/* Sandbox Toggle */}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Toggle Sandbox Mode">
+                                <span>Sandbox</span>
+                                <div style={{
+                                    width: '36px',
+                                    height: '20px',
+                                    background: isSandboxEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                    borderRadius: '10px',
+                                    position: 'relative',
+                                    transition: 'background 0.3s ease',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        background: '#fff',
+                                        borderRadius: '50%',
+                                        position: 'absolute',
+                                        top: '1px',
+                                        left: isSandboxEnabled ? '17px' : '1px',
+                                        transition: 'left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                    }} />
+                                    <input
+                                        type="checkbox"
+                                        checked={isSandboxEnabled}
+                                        onChange={(e) => onToggleSandbox?.(e.target.checked)}
+                                        style={{ display: 'none' }}
+                                    />
+                                </div>
+                            </label>
+                        </div>
                         {sources.map((source, index) => {
                             const isActive = source.url === activeServerUrl;
                             return (

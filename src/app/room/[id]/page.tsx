@@ -51,6 +51,7 @@ export default function RoomPage() {
     const [tvDetails, setTvDetails] = useState<any>(null);
 
     const [rememberName, setRememberName] = useState(false);
+    const [isSandboxEnabled, setIsSandboxEnabled] = useState(true);
 
     // Load saved global name on mount
     useEffect(() => {
@@ -522,7 +523,9 @@ export default function RoomPage() {
             <div className="room-content">
                 {/* Playback Area */}
                 <div className="video-area">
-                    <VideoPlayer />
+                    <VideoPlayer
+                        isSandboxEnabled={isSandboxEnabled}
+                    />
 
 
                 </div>
@@ -540,6 +543,8 @@ export default function RoomPage() {
                     sources={isTvShow && mediaId ? getStreamSources('tv', mediaId, currentSeason, currentEpisode) : (mediaId ? getStreamSources('movie', mediaId) : [])}
                     onServerSelect={handleServerSelect}
                     activeServerUrl={videoState.url}
+                    isSandboxEnabled={isSandboxEnabled}
+                    onToggleSandbox={setIsSandboxEnabled}
                 />
             </div>
 

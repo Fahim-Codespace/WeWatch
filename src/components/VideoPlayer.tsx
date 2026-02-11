@@ -9,9 +9,10 @@ import PlayerSettings from './PlayerSettings';
 
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
+    isSandboxEnabled?: boolean;
 }
 
-export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
+export default function VideoPlayer({ initialSources, isSandboxEnabled = true }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -32,7 +33,7 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
     const [availableQualities, setAvailableQualities] = useState<{ index: number; height: number; label: string }[]>([]);
     const [currentQuality, setCurrentQuality] = useState(-1); // -1 means auto
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    const [isSafetyMode, setIsSafetyMode] = useState(true);
+    // const [isSafetyMode, setIsSafetyMode] = useState(true); // Replaced by prop
     const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
 
@@ -284,7 +285,7 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
                 videoState.sourceType === 'embed' ? (
                     // Render iframe for embed sources (VidSrc, 2Embed, etc.)
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                        {isSafetyMode && shieldActive && (
+                        {isSandboxEnabled && shieldActive && (
                             <div
                                 onClick={() => setShieldActive(false)}
                                 style={{
@@ -328,7 +329,7 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
                             referrerPolicy="origin"
                             allowFullScreen
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            sandbox={isSafetyMode
+                            sandbox={isSandboxEnabled
                                 ? "allow-scripts allow-same-origin allow-forms"
                                 : undefined
                             }
