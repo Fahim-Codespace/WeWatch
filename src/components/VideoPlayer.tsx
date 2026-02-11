@@ -6,6 +6,7 @@ import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
 import PlayerSettings from './PlayerSettings';
+import ChatOverlay from './ChatOverlay';
 
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
@@ -36,6 +37,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     // const [isSafetyMode, setIsSafetyMode] = useState(true); // Replaced by prop
     const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
+    const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
 
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
@@ -604,6 +606,11 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                     />
                 </div>
             )}
+            {/* Chat Overlay - Rendered LAST to be on top of everything, including overlay controls */}
+            <ChatOverlay
+                isOpen={isChatOverlayOpen}
+                onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
+            />
         </div>
     );
 }

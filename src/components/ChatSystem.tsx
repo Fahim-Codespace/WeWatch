@@ -1,9 +1,107 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, MessageSquare, Users, Trash2 } from 'lucide-react';
+import { Send, Mic, MicOff, MessageSquare, Users, Trash2, Play, Pause, X } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Helper to format time (mm:ss)
+const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+const CustomAudioPlayer = ({ src, sender, isMe }: { src: string, sender: string, isMe: boolean }) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(0);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const handleTimeUpdate = () => {
+            setProgress((audio.currentTime / audio.duration) * 100);
+        };
+
+        const handleLoadedMetadata = () => {
+            setDuration(audio.duration);
+        };
+
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setProgress(0);
+        };
+
+        audio.addEventListener('timeupdate', handleTimeUpdate);
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+            audio.removeEventListener('timeupdate', handleTimeUpdate);
+            audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            audio.removeEventListener('ended', handleEnded);
+        };
+    }, []);
+
+    const togglePlay = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px' }}>
+            <audio ref={audioRef} src={src} style={{ display: 'none' }} />
+            <button
+                onClick={togglePlay}
+                style={{
+                    background: isMe ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: isMe ? '#000' : '#fff'
+                }}
+            >
+                {isPlaying ? <Pause size={16} fill={isMe ? "#000" : "#fff"} /> : <Play size={16} fill={isMe ? "#000" : "#fff"} />}
+            </button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{
+                    height: '4px',
+                    background: isMe ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                    borderRadius: '2px',
+                    overflow: 'hidden',
+                    position: 'relative'
+                }}>
+                    <div style={{
+                        width: `${progress}%`,
+                        height: '100%',
+                        background: isMe ? '#000' : '#fff',
+                        transition: 'width 0.1s linear'
+                    }}></div>
+                </div>
+                <div style={{
+                    fontSize: '0.65rem',
+                    color: isMe ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)',
+                    textAlign: 'right'
+                }}>
+                    {formatTime(duration)}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function ChatSystem() {
     const { messages, sendMessage, sendVoiceMessage, participants, currentUserName } = useRoom();
@@ -13,6 +111,8 @@ export default function ChatSystem() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -41,6 +141,10 @@ export default function ChatSystem() {
             };
             recorder.start();
             setIsRecording(true);
+            setRecordingTime(0);
+            timerRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
         } catch (err) {
             console.error("Failed to start recording:", err);
         }
@@ -51,6 +155,25 @@ export default function ChatSystem() {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
             mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+    };
+
+    const cancelRecording = () => {
+        if (mediaRecorderRef.current) {
+            // Stop but don't save
+            mediaRecorderRef.current.onstop = null; // Clear handler
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            setAudioChunks([]);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
         }
     };
 
@@ -148,7 +271,11 @@ export default function ChatSystem() {
                                     }}>
                                         {msg.text && <div>{msg.text}</div>}
                                         {msg.voiceUrl && (
-                                            <audio src={msg.voiceUrl} controls style={{ height: '30px', width: '180px', filter: msg.sender === currentUserName ? 'invert(1)' : 'none' }} />
+                                            <CustomAudioPlayer
+                                                src={msg.voiceUrl}
+                                                sender={msg.sender}
+                                                isMe={msg.sender === currentUserName}
+                                            />
                                         )}
                                     </div>
                                 </motion.div>
@@ -158,57 +285,132 @@ export default function ChatSystem() {
 
                     {/* Input Area */}
                     <div style={{ padding: '20px', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,5,0.4)' }}>
-                        <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Type a message..."
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        background: 'var(--secondary)',
-                                        border: '1px solid var(--glass-border)',
-                                        borderRadius: '24px',
-                                        padding: '12px 16px',
-                                        color: '#fff',
-                                        outline: 'none'
-                                    }}
-                                />
-                            </div>
+                        {!isRecording ? (
+                            // Normal Text Input
+                            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+                                <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Type a message..."
+                                        value={inputText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            background: 'var(--secondary)',
+                                            border: '1px solid var(--glass-border)',
+                                            borderRadius: '24px',
+                                            padding: '12px 16px',
+                                            color: '#fff',
+                                            outline: 'none'
+                                        }}
+                                    />
+                                </div>
 
-                            <button
-                                type="button"
-                                onMouseDown={startRecording}
-                                onMouseUp={stopRecording}
-                                onMouseLeave={stopRecording}
-                                style={{
-                                    background: isRecording ? '#ff4444' : 'var(--secondary)',
-                                    border: 'none',
-                                    width: '44px',
-                                    height: '44px',
-                                    borderRadius: '50%',
+                                <button
+                                    type="button"
+                                    onClick={startRecording}
+                                    style={{
+                                        background: 'var(--secondary)',
+                                        border: 'none',
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <Mic size={20} />
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    style={{ width: '44px', height: '44px', borderRadius: '50%', padding: 0, justifyContent: 'center' }}
+                                    disabled={!inputText.trim()}
+                                >
+                                    <Send size={20} />
+                                </button>
+                            </form>
+                        ) : (
+                            // Recording UI
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                                <div style={{
+                                    flex: 1,
+                                    background: 'rgba(255, 68, 68, 0.1)',
+                                    borderRadius: '24px',
+                                    padding: '12px 16px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: isRecording ? '0 0 20px rgba(255, 68, 68, 0.4)' : 'none'
-                                }}
-                            >
-                                {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-                            </button>
+                                    gap: '12px',
+                                    border: '1px solid rgba(255, 68, 68, 0.2)'
+                                }}>
+                                    <div style={{
+                                        width: '10px',
+                                        height: '10px',
+                                        borderRadius: '50%',
+                                        background: '#ff4444',
+                                        boxShadow: '0 0 10px #ff4444',
+                                        animation: 'pulse 1.5s infinite'
+                                    }}></div>
+                                    <span style={{ color: '#ff4444', fontWeight: '600', fontFamily: 'monospace' }}>
+                                        Recording {formatTime(recordingTime)}...
+                                    </span>
+                                </div>
 
-                            <button
-                                type="submit"
-                                className="btn-primary"
-                                style={{ width: '44px', height: '44px', borderRadius: '50%', padding: 0, justifyContent: 'center' }}
-                                disabled={!inputText.trim()}
-                            >
-                                <Send size={20} />
-                            </button>
-                        </form>
+                                <button
+                                    type="button"
+                                    onClick={cancelRecording}
+                                    style={{
+                                        background: 'var(--secondary)',
+                                        border: 'none',
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#ff4444',
+                                        cursor: 'pointer'
+                                    }}
+                                    title="Cancel"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={stopRecording}
+                                    style={{
+                                        background: 'var(--primary)',
+                                        border: 'none',
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#000',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 0 20px var(--primary-glow)'
+                                    }}
+                                    title="Send Voice Message"
+                                >
+                                    <Send size={20} />
+                                </button>
+
+                                <style jsx>{`
+                                    @keyframes pulse {
+                                        0% { opacity: 1; transform: scale(1); }
+                                        50% { opacity: 0.5; transform: scale(0.8); }
+                                        100% { opacity: 1; transform: scale(1); }
+                                    }
+                                `}</style>
+                            </div>
+                        )}
                     </div>
                 </>
             ) : (
