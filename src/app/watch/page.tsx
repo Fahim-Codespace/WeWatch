@@ -94,6 +94,13 @@ function WatchPageContent() {
             {/* Minimalist Floating Header */}
             <header className="watch-header">
                 <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <button
+                        onClick={() => router.back()}
+                        className="btn-back"
+                        title="Go Back"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
                     {mediaTitle && (
                         <div className="title-container">
                             <span className="media-title">
@@ -124,12 +131,6 @@ function WatchPageContent() {
                             <Users size={18} />
                             <span>Start Party</span>
                         </button>
-                    )}
-                    {roomId && (
-                        <div className="room-active-badge">
-                            <Users size={16} />
-                            <span>Room Active</span>
-                        </div>
                     )}
                 </div>
             </header>
@@ -218,18 +219,24 @@ function WatchPageContent() {
                     box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
                 }
 
-                .room-active-badge {
-                    padding: 6px 16px;
-                    background: rgba(0, 255, 136, 0.1);
-                    border: 1px solid var(--primary);
-                    border-radius: 20px;
+                .btn-back {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                     display: flex;
                     align-items: center;
-                    gap: 8px;
-                    color: var(--primary);
-                    font-size: 0.9rem;
-                    font-weight: 600;
+                    justify-content: center;
+                    color: white;
+                    cursor: pointer;
                     backdrop-filter: blur(10px);
+                    transition: all 0.2s ease;
+                }
+
+                .btn-back:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                    transform: scale(1.05);
                 }
 
                 .watch-content {
