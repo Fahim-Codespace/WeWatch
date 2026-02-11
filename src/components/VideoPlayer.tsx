@@ -17,7 +17,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
-    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId } = useRoom();
+    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, messages } = useRoom();
     const { isSharing, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
     const [showControls, setShowControls] = useState(true);
     const [volume, setVolume] = useState(1);
@@ -39,6 +39,18 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
     const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const lastMessageCountRef = useRef(messages.length);
+
+    useEffect(() => {
+        if (messages.length > lastMessageCountRef.current) {
+            setShowControls(true);
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+            controlsTimeoutRef.current = setTimeout(() => {
+                if (videoState.playing) setShowControls(false);
+            }, 3000);
+        }
+        lastMessageCountRef.current = messages.length;
+    }, [messages.length, videoState.playing]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -481,7 +493,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
             )}
 
             {/* Video Overlay / Controls - Only show for non-embed sources */}
-            {videoState.sourceType !== 'embed' && (
+            {(videoState.sourceType !== 'embed' || isFullscreen) && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
@@ -622,7 +634,9 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        marginLeft: '10px'
+                                        marginLeft: '10px',
+                                        zIndex: 100, // Ensure it's on top
+                                        pointerEvents: 'auto'
                                     }}
                                     title="Chat"
                                 >
