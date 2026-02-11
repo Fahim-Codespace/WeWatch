@@ -39,7 +39,7 @@ export default function WatchSidebar({
     isSandboxEnabled = true,
     onToggleSandbox
 }: WatchSidebarProps) {
-    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat'>('chat');
+    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat' | 'users'>('chat');
     const [isOpen, setIsOpen] = useState(true);
 
     // Determine default tab on mount logic modification if needed, but 'chat' is a safe default for a social room.
@@ -54,13 +54,22 @@ export default function WatchSidebar({
             {/* Tabs Header */}
             <div className="sidebar-header">
                 {roomId && (
-                    <button
-                        onClick={() => setActiveTab('chat')}
-                        className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
-                    >
-                        <MessageSquare size={18} />
-                        <span>Chat</span>
-                    </button>
+                    <>
+                        <button
+                            onClick={() => setActiveTab('chat')}
+                            className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
+                        >
+                            <MessageSquare size={18} />
+                            <span>Chat</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('users')}
+                            className={`sidebar-tab ${activeTab === 'users' ? 'active' : ''}`}
+                        >
+                            <Users size={18} />
+                            <span>Users</span>
+                        </button>
+                    </>
                 )}
 
                 <button
@@ -89,6 +98,13 @@ export default function WatchSidebar({
                 {activeTab === 'chat' && roomId && (
                     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <ChatSystem />
+                    </div>
+                )}
+
+                {/* Users Tab */}
+                {activeTab === 'users' && roomId && (
+                    <div style={{ padding: '0', height: '100%', overflowY: 'auto' }}>
+                        <ChatSystem showUsersOnly={true} />
                     </div>
                 )}
 

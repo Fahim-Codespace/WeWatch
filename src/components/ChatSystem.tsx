@@ -103,11 +103,11 @@ const CustomAudioPlayer = ({ src, sender, isMe }: { src: string, sender: string,
     );
 };
 
-export default function ChatSystem() {
+export default function ChatSystem({ showUsersOnly = false }: { showUsersOnly?: boolean }) {
     const { messages, sendMessage, sendVoiceMessage, participants, currentUserName } = useRoom();
     const [inputText, setInputText] = useState('');
     const [isRecording, setIsRecording] = useState(false);
-    const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
+    // Removed internal activeTab state
     const scrollRef = useRef<HTMLDivElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
@@ -186,51 +186,9 @@ export default function ChatSystem() {
             background: 'rgba(10, 10, 10, 0.4)',
             overflow: 'hidden'
         }}>
-            {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--glass-border)' }}>
-                <button
-                    onClick={() => setActiveTab('chat')}
-                    style={{
-                        flex: 1,
-                        padding: '16px',
-                        background: 'none',
-                        border: 'none',
-                        color: activeTab === 'chat' ? 'var(--primary)' : 'var(--text-muted)',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'chat' ? '2px solid var(--primary)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <MessageSquare size={18} />
-                    Messages
-                </button>
-                <button
-                    onClick={() => setActiveTab('users')}
-                    style={{
-                        flex: 1,
-                        padding: '16px',
-                        background: 'none',
-                        border: 'none',
-                        color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-muted)',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'users' ? '2px solid var(--primary)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <Users size={18} />
-                    Watchers ({participants.length})
-                </button>
-            </div>
+            {/* Tabs are removed in favor of parent sidebar control */}
 
-            {activeTab === 'chat' ? (
+            {!showUsersOnly ? (
                 <>
                     {/* Messages Area */}
                     <div ref={scrollRef} style={{
@@ -415,6 +373,9 @@ export default function ChatSystem() {
                 </>
             ) : (
                 <div style={{ padding: '20px' }}>
+                    <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 16px 0' }}>
+                        Watchers ({participants.length})
+                    </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {participants.map((p) => (
                             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
