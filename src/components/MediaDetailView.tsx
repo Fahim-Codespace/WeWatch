@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Plus, Star, Calendar, Clock, Globe, DollarSign, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Play, Plus, Star, Calendar, Clock, Globe, DollarSign, X, ArrowLeft } from 'lucide-react';
 import { MediaDetails, TVShowDetails, Video } from '@/types/media';
 import { getImageUrl } from '@/lib/tmdb';
 import { formatRuntime, getYear, formatRating } from '@/lib/streamSources';
@@ -14,6 +15,7 @@ interface MediaDetailViewProps {
 }
 
 export default function MediaDetailView({ media, type }: MediaDetailViewProps) {
+    const router = useRouter();
     const [showTrailer, setShowTrailer] = useState(false);
 
     const title = type === 'movie' ? (media as any).title : (media as any).name;
@@ -44,6 +46,40 @@ export default function MediaDetailView({ media, type }: MediaDetailViewProps) {
                     style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
                     priority
                 />
+
+                {/* Back Button */}
+                <button
+                    onClick={() => router.back()}
+                    style={{
+                        position: 'absolute',
+                        top: '40px',
+                        left: '40px',
+                        zIndex: 100,
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    title="Go Back"
+                >
+                    <ArrowLeft size={20} />
+                </button>
 
                 {/* Gradient Overlays */}
                 <div style={{

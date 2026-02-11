@@ -83,7 +83,7 @@ export default function ChatSystem() {
                     }}
                 >
                     <MessageSquare size={18} />
-                    Chat
+                    Messages
                 </button>
                 <button
                     onClick={() => setActiveTab('users')}
