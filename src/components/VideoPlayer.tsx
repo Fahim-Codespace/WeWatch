@@ -419,7 +419,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                     height: '100%',
                     gap: '20px',
                     color: 'var(--text-muted)',
-                    padding: '20px',
+                    padding: '60px 20px 20px', // Increased top padding to push content down
                     textAlign: 'center'
                 }}>
                     <Film className="no-video-icon" size={64} style={{ opacity: 0.2 }} />
@@ -427,7 +427,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                         <h2 style={{ color: '#fff', marginBottom: '8px' }}>No video selected</h2>
                         <p>Upload a local file or enter a URL to start watching together</p>
                     </div>
-                    <div className="no-video-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <div className="no-video-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: 'auto', marginBottom: '40px' }}>
                         <label className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FileVideo size={18} />
                             Open File
@@ -524,8 +524,8 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 </div>
             )}
 
-            {/* Video Overlay / Controls - Only show for non-embed sources */}
-            {(videoState.sourceType !== 'embed' || isFullscreen) && (
+            {/* Video Overlay / Controls - Only show for non-embed sources AND when there is a video/stream */}
+            {((videoState.sourceType !== 'embed' && (videoState.url || activeStream)) || isFullscreen) && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
