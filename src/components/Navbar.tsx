@@ -43,7 +43,6 @@ export default function Navbar() {
                     {/* Desktop Menu */}
                     <div className="desktop-menu" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                         <SearchBar />
-                        <a href="#create-room" className="nav-link">Create Room</a>
                     </div>
 
                     {/* Mobile Menu Toggle */}
@@ -59,7 +58,6 @@ export default function Navbar() {
                 {isMenuOpen && (
                     <div className="mobile-menu">
                         <SearchBar />
-                        <a href="#create-room" className="nav-link" onClick={() => setIsMenuOpen(false)}>Create Room</a>
                     </div>
                 )}
             </div>
