@@ -411,21 +411,23 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                     />
                 )
             ) : !activeStream && (
-                <div style={{
+                <div className="no-video-container" style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     height: '100%',
                     gap: '20px',
-                    color: 'var(--text-muted)'
+                    color: 'var(--text-muted)',
+                    padding: '20px',
+                    textAlign: 'center'
                 }}>
-                    <Film size={64} style={{ opacity: 0.2 }} />
-                    <div style={{ textAlign: 'center' }}>
+                    <Film className="no-video-icon" size={64} style={{ opacity: 0.2 }} />
+                    <div className="no-video-text" style={{ textAlign: 'center' }}>
                         <h2 style={{ color: '#fff', marginBottom: '8px' }}>No video selected</h2>
                         <p>Upload a local file or enter a URL to start watching together</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '16px' }}>
+                    <div className="no-video-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                         <label className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FileVideo size={18} />
                             Open File
@@ -710,6 +712,33 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
                 showFloatingButton={false}
             />
+            <style jsx>{`
+                @media (max-width: 768px) {
+                    .no-video-container {
+                        gap: 12px !important;
+                    }
+                    .no-video-icon {
+                        width: 48px !important;
+                        height: 48px !important;
+                    }
+                    .no-video-text h2 {
+                        font-size: 1.2rem !important;
+                    }
+                    .no-video-text p {
+                        font-size: 0.9rem !important;
+                    }
+                    .no-video-actions {
+                        flex-direction: column;
+                        width: 100%;
+                        max-width: 240px;
+                        gap: 10px !important;
+                    }
+                    .no-video-actions .btn-secondary {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
