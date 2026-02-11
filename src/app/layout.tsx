@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "WeWatch - Sync Your Experience",
   description: "Watch movies together from different places, perfectly synced. Chat, voice messages, and room sharing.",
   keywords: "watch together, movie sync, collaborative streaming, wewatch, movie party",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 import { RoomProvider } from "@/context/RoomContext";

@@ -391,6 +391,18 @@ export default function RoomPage() {
                         onClick={() => router.push('/')}
                         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
                     >
+                        <div style={{
+                            background: 'var(--primary)',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 0 15px var(--primary-glow)'
+                        }}>
+                            <Film size={18} color="#000" fill="#000" />
+                        </div>
                         <span style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>
                             WE<span style={{ color: 'var(--primary)' }}>WATCH</span>
                         </span>
@@ -662,30 +674,9 @@ export default function RoomPage() {
                 isOpen={showBrowseModal}
                 onClose={() => setShowBrowseModal(false)}
                 onSelect={(media) => {
-                    // Update video URL
-                    // Construct URL and call setVideoUrl
-                    // Determine if Movie or TV
                     const isMovie = 'title' in media;
                     const type = isMovie ? 'movie' : 'tv';
-                    const title = isMovie ? (media as any).title : (media as any).name;
-
-                    // Update title
-                    setMediaTitle(title);
-
-                    if (type === 'movie') {
-                        // For movie, load sources
-                        const sources = getStreamSources('movie', media.id);
-                        if (sources.length > 0) {
-                            setVideoUrl(sources[0].url, 'embed');
-                        }
-                    } else {
-                        // For TV, load season 1 episode 1
-                        const sources = getStreamSources('tv', media.id, 1, 1);
-                        if (sources.length > 0) {
-                            setVideoUrl(sources[0].url, 'embed');
-                        }
-                    }
-
+                    router.push(`/media/${type}/${media.id}`);
                     setShowBrowseModal(false);
                 }}
             />
