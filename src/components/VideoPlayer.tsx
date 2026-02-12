@@ -384,7 +384,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             </div>
                         )}
                         <iframe
-                            key={videoState.url}
+                            key={`${videoState.url}-${isSandboxEnabled}`}
                             src={videoState.url}
                             style={{
                                 width: '100%',
@@ -395,7 +395,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             allowFullScreen
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             sandbox={isSandboxEnabled
-                                ? "allow-scripts allow-same-origin allow-forms"
+                                ? "allow-scripts allow-same-origin allow-presentation"
                                 : undefined
                             }
                         />
