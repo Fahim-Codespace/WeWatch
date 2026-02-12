@@ -6,7 +6,7 @@ import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
 import PlayerSettings from './PlayerSettings';
-import ChatOverlay from './ChatOverlay';
+
 
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
@@ -37,7 +37,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     // const [isSafetyMode, setIsSafetyMode] = useState(true); // Replaced by prop
     const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
-    const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const lastMessageCountRef = useRef(messages.length);
 
@@ -653,40 +652,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Maximize size={20} />
                             </button>
-                            {/* Always render chat button in controls, but only visible/active if in fullscreen or if we want it always accessible */}
-                            {(isFullscreen || true) && (
-                                <button
-                                    onClick={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                                    style={{
-                                        background: isChatOverlayOpen ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                                        border: '1px solid rgba(255,255,255,0.2)',
-                                        color: isChatOverlayOpen ? '#000' : '#fff',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        borderRadius: '8px',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginLeft: '10px',
-                                        position: 'relative',
-                                        display: isFullscreen ? 'flex' : 'none' // Strict visibility check via display
-                                    }}
-                                    title="Chat"
-                                >
-                                    <MessageSquare size={20} />
-                                    {messages.length > lastMessageCountRef.current && !isChatOverlayOpen && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '-2px',
-                                            right: '-2px',
-                                            width: '8px',
-                                            height: '8px',
-                                            background: '#ff4444',
-                                            borderRadius: '50%',
-                                            border: '1px solid #000'
-                                        }} />
-                                    )}
-                                </button>
-                            )}
+
                         </div>
                     </div>
                 </div>
@@ -706,12 +672,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 onServerChange={switchServer}
             />
 
-            {/* Chat Overlay - Rendered LAST to be on top of everything, including overlay controls */}
-            <ChatOverlay
-                isOpen={isChatOverlayOpen}
-                onToggle={() => setIsChatOverlayOpen(!isChatOverlayOpen)}
-                showFloatingButton={false}
-            />
+
             <style jsx>{`
                 @media (max-width: 768px) {
                     .no-video-container {
