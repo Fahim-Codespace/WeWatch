@@ -1,23 +1,21 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, MessageSquare, Film } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, Film } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
 import PlayerSettings from './PlayerSettings';
 
-
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
-    isSandboxEnabled?: boolean;
 }
 
-export default function VideoPlayer({ initialSources, isSandboxEnabled = true }: VideoPlayerProps) {
+export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
-    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, messages } = useRoom();
+    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId } = useRoom();
     const { isSharing, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
     const [showControls, setShowControls] = useState(true);
     const [volume, setVolume] = useState(1);
@@ -34,72 +32,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const [availableQualities, setAvailableQualities] = useState<{ index: number; height: number; label: string }[]>([]);
     const [currentQuality, setCurrentQuality] = useState(-1); // -1 means auto
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    // const [isSafetyMode, setIsSafetyMode] = useState(true); // Replaced by prop
-    const [shieldActive, setShieldActive] = useState(true);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const lastMessageCountRef = useRef(messages.length);
-
-    useEffect(() => {
-        if (messages.length > lastMessageCountRef.current) {
-            setShowControls(true);
-            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-            controlsTimeoutRef.current = setTimeout(() => {
-                if (videoState.playing) setShowControls(false);
-            }, 3000);
-        }
-        lastMessageCountRef.current = messages.length;
-    }, [messages.length, videoState.playing]);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            const isFull = !!document.fullscreenElement;
-            console.log('Fullscreen change:', isFull);
-            setIsFullscreen(isFull);
-        };
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari/Chrome legacy
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange); // Firefox legacy
-        document.addEventListener('msfullscreenchange', handleFullscreenChange); // IE/Edge legacy
-
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-        };
-    }, []);
-
-    // Fallback check for fullscreen (some browsers/iframes don't fire events reliably)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Check standard API or dimension match
-            const isFull = !!document.fullscreenElement ||
-                (typeof window !== 'undefined' && window.innerWidth === screen.width && window.innerHeight === screen.height);
-
-            if (isFull !== isFullscreen) {
-                console.log('Fullscreen fallback check:', isFull);
-                setIsFullscreen(isFull);
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [isFullscreen]);
-
-    // Fallback check for fullscreen (some browsers/iframes don't fire events reliably)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Check standard API or dimension match
-            const isFull = !!document.fullscreenElement ||
-                (typeof window !== 'undefined' && window.innerWidth === screen.width && window.innerHeight === screen.height);
-
-            if (isFull !== isFullscreen) {
-                console.log('Fullscreen fallback check:', isFull);
-                setIsFullscreen(isFull);
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [isFullscreen]);
 
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
@@ -130,13 +63,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         }
     };
 
-
-
-
-
-    // Ref to track if we should attempt to capture/broadcast the current video
-    const shouldCaptureLocalStream = useRef(false);
-
     const switchServer = (index: number) => {
         if (index >= 0 && index < videoSources.length) {
             setActiveServerIndex(index);
@@ -147,12 +73,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     };
 
     const handleVideoError = () => {
-        // Ignore errors for local files (remote peers' players will fail to load the blob URL)
-        if (videoState.sourceType === 'local') return;
-
-        // Safety check to prevent crashes if videoSources is empty or index is invalid
-        if (!videoSources[activeServerIndex]) return;
-
         // Mark current server as failed
         const updatedSources = [...videoSources];
         updatedSources[activeServerIndex].health = 'failed';
@@ -257,47 +177,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         };
     }, [videoState.url]);
 
-    // Capture and Broadcast Local File Stream
-    useEffect(() => {
-        if (shouldCaptureLocalStream.current && videoState.url && videoRef.current) {
-            const videoElement = videoRef.current;
-
-            // Wait for video to be ready (at least metadata loaded)
-            const handleCanPlay = async () => {
-                try {
-                    // @ts-ignore - captureStream is not in standard types heavily yet
-                    if (videoElement.captureStream) {
-                        // @ts-ignore
-                        const stream = videoElement.captureStream();
-                        console.log('Capturing local stream:', stream);
-                        await startScreenShare(stream);
-                        shouldCaptureLocalStream.current = false;
-                    } else if ((videoElement as any).mozCaptureStream) {
-                        // Firefox support
-                        // @ts-ignore
-                        const stream = (videoElement as any).mozCaptureStream();
-                        await startScreenShare(stream);
-                        shouldCaptureLocalStream.current = false;
-                    }
-                } catch (err) {
-                    console.error("Failed to capture local stream:", err);
-                }
-            };
-
-            videoElement.addEventListener('loadedmetadata', handleCanPlay);
-            // If already ready
-            if (videoElement.readyState >= 1) {
-                handleCanPlay();
-            }
-
-            return () => {
-                videoElement.removeEventListener('loadedmetadata', handleCanPlay);
-            };
-        }
-    }, [videoState.url, startScreenShare]);
-
-
-
     useEffect(() => {
         if (!videoRef.current) return;
 
@@ -362,7 +241,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const handleLocalFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const url = URL.createObjectURL(e.target.files[0]);
-            shouldCaptureLocalStream.current = true;
             setVideoUrl(url, 'local');
         }
     };
@@ -375,17 +253,6 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     }, [screenStream, remoteScreenStream]);
 
     const activeStream = screenStream || remoteScreenStream;
-
-    // Determine if we should show the stream overlay
-    // - Show if we are a VIEWER (remoteScreenStream exists)
-    // - Show if we are HOSTING a screen share (screenStream exists) AND it's NOT a local file (prevent mirroring/unmounting source)
-    const showStreamOverlay = !!remoteScreenStream || (!!screenStream && videoState.sourceType !== 'local');
-
-    // Determine if we should show the regular video player (Source)
-    // - Show if NO overlay is active
-    // - OR if we are HOSTING a local file (we need to see/keep the source mounted to capture it)
-    const showSourcePlayer = !showStreamOverlay || (!!screenStream && videoState.sourceType === 'local');
-
 
     return (
         <div
@@ -401,73 +268,31 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 border: '1px solid var(--glass-border)'
             }}
         >
-            {/* Stream Display (Remote Stream or Screen Share Preview) */}
-            {showStreamOverlay && (
+            {/* Screen Share Display */}
+            {activeStream && (
                 <video
-                    ref={(el) => {
-                        screenVideoRef.current = el;
-                        if (el) el.srcObject = remoteScreenStream || screenStream;
-                    }}
+                    ref={screenVideoRef}
                     autoPlay
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
             )}
 
-            {/* Regular Video Display (Source) */}
-            {showSourcePlayer && videoState.url ? (
+            {/* Regular Video Display */}
+            {!activeStream && videoState.url ? (
                 videoState.sourceType === 'embed' ? (
                     // Render iframe for embed sources (VidSrc, 2Embed, etc.)
-                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                        {isSandboxEnabled && shieldActive && (
-                            <div
-                                onClick={() => setShieldActive(false)}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                    zIndex: 20,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: 'rgba(0,0,0,0.01)', // Almost invisible but catches clicks
-                                }}
-                            >
-                                <div style={{
-                                    padding: '12px 24px',
-                                    background: 'rgba(0,0,0,0.7)',
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: '#fff',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '500',
-                                    pointerEvents: 'none', // Label doesn't block click to parent
-                                    opacity: 0.8
-                                }}>
-                                    Shield Active: Click anywhere to unlock player
-                                </div>
-                            </div>
-                        )}
-                        <iframe
-                            key={`${videoState.url}-${isSandboxEnabled}`}
-                            src={videoState.url}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                border: 'none'
-                            }}
-                            referrerPolicy="origin"
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            sandbox={isSandboxEnabled
-                                ? "allow-scripts allow-same-origin allow-presentation"
-                                : undefined
-                            }
-                        />
-                    </div>
+                    <iframe
+                        key={videoState.url}
+                        src={videoState.url}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            border: 'none'
+                        }}
+                        referrerPolicy="origin"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
                 ) : (
                     // Render video element for direct URLs and local files
                     <video
@@ -478,30 +303,28 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                         onError={handleVideoError}
                     />
                 )
-            ) : !showStreamOverlay && (
-                <div className="no-video-container" style={{
+            ) : !activeStream && (
+                <div style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     height: '100%',
                     gap: '20px',
-                    color: 'var(--text-muted)',
-                    padding: '60px 20px 20px', // Increased top padding to push content down
-                    textAlign: 'center'
+                    color: 'var(--text-muted)'
                 }}>
-                    <Film className="no-video-icon" size={64} style={{ opacity: 0.2 }} />
-                    <div className="no-video-text" style={{ textAlign: 'center' }}>
+                    <Film size={64} style={{ opacity: 0.2 }} />
+                    <div style={{ textAlign: 'center' }}>
                         <h2 style={{ color: '#fff', marginBottom: '8px' }}>No video selected</h2>
                         <p>Upload a local file or enter a URL to start watching together</p>
                     </div>
-                    <div className="no-video-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: 'auto', marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
                         <label className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FileVideo size={18} />
                             Open File
                             <input type="file" accept="video/*" style={{ display: 'none' }} onChange={handleLocalFile} />
                         </label>
-                        <button className="btn-secondary" onClick={() => setIsUrlModalOpen(true)}>
+                        <button className="btn-primary" onClick={() => setIsUrlModalOpen(true)}>
                             <LinkIcon size={18} />
                             Paste URL
                         </button>
@@ -592,8 +415,8 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 </div>
             )}
 
-            {/* Video Overlay / Controls - Only show for non-embed sources AND when there is a video/stream */}
-            {(videoState.url || showStreamOverlay) && ((videoState.sourceType !== 'embed') || isFullscreen) && (
+            {/* Video Overlay / Controls - Only show for non-embed sources */}
+            {videoState.sourceType !== 'embed' && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
@@ -721,55 +544,24 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Maximize size={20} />
                             </button>
-
                         </div>
                     </div>
+
+                    {/* Player Settings Panel */}
+                    <PlayerSettings
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        currentQuality={currentQuality}
+                        availableQualities={availableQualities}
+                        onQualityChange={handleQualityChange}
+                        playbackSpeed={playbackSpeed}
+                        onSpeedChange={handleSpeedChange}
+                        servers={videoSources}
+                        activeServerIndex={activeServerIndex}
+                        onServerChange={switchServer}
+                    />
                 </div>
             )}
-
-            {/* Player Settings Panel */}
-            <PlayerSettings
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                currentQuality={currentQuality}
-                availableQualities={availableQualities}
-                onQualityChange={handleQualityChange}
-                playbackSpeed={playbackSpeed}
-                onSpeedChange={handleSpeedChange}
-                servers={videoSources}
-                activeServerIndex={activeServerIndex}
-                onServerChange={switchServer}
-            />
-
-
-            <style jsx>{`
-                @media (max-width: 768px) {
-                    .no-video-container {
-                        gap: 12px !important;
-                    }
-                    .no-video-icon {
-                        width: 48px !important;
-                        height: 48px !important;
-                    }
-                    .no-video-text h2 {
-                        font-size: 1.2rem !important;
-                    }
-                    .no-video-text p {
-                        font-size: 0.9rem !important;
-                    }
-                    .no-video-actions {
-                        flex-direction: column;
-                        width: 100%;
-                        max-width: 240px;
-                        gap: 10px !important;
-                    }
-                    .no-video-actions .btn-secondary {
-                        width: 100%;
-                        justify-content: center;
-                    }
-                }
-            `}</style>
         </div>
     );
 }
-

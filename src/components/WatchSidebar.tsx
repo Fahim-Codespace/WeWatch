@@ -94,59 +94,34 @@ export default function WatchSidebar({
             {/* Content Area */}
             <div className="sidebar-content">
 
-                {/* Chat Tab */}
-                {activeTab === 'chat' && roomId && (
-                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <ChatSystem />
-                    </div>
-                )}
-
-                {/* Users Tab */}
-                {activeTab === 'users' && roomId && (
-                    <div style={{ padding: '0', height: '100%', overflowY: 'auto' }}>
-                        <ChatSystem showUsersOnly={true} />
+                {/* Episodes Tab */}
+                {activeTab === 'episodes' && mediaType === 'tv' && (
+                    <div style={{ padding: '0' }}>
+                        {seasons && seasons.length > 0 && tvId && tvTitle ? (
+                            <EpisodeSelector
+                                tvId={tvId}
+                                tvTitle={tvTitle}
+                                currentSeason={currentSeason || 1}
+                                currentEpisode={currentEpisode || 1}
+                                seasons={seasons}
+                                onEpisodeSelect={onEpisodeSelect || (() => { })}
+                            // Pass a prop to EpisodeSelector to style it for sidebar?
+                            // Assuming EpisodeSelector is responsive.
+                            />
+                        ) : (
+                            <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                Loading episodes...
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Servers Tab */}
                 {activeTab === 'servers' && (
                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
-                                Stream Sources
-                            </h3>
-                            {/* Sandbox Toggle */}
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Toggle Sandbox Mode">
-                                <span>Sandbox</span>
-                                <div style={{
-                                    width: '36px',
-                                    height: '20px',
-                                    background: isSandboxEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                                    borderRadius: '10px',
-                                    position: 'relative',
-                                    transition: 'background 0.3s ease',
-                                    border: '1px solid var(--glass-border)'
-                                }}>
-                                    <div style={{
-                                        width: '16px',
-                                        height: '16px',
-                                        background: '#fff',
-                                        borderRadius: '50%',
-                                        position: 'absolute',
-                                        top: '1px',
-                                        left: isSandboxEnabled ? '17px' : '1px',
-                                        transition: 'left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                                    }} />
-                                    <input
-                                        type="checkbox"
-                                        checked={isSandboxEnabled}
-                                        onChange={(e) => onToggleSandbox?.(e.target.checked)}
-                                        style={{ display: 'none' }}
-                                    />
-                                </div>
-                            </label>
-                        </div>
+                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            Stream Sources
+                        </h3>
                         {sources.map((source, index) => {
                             const isActive = source.url === activeServerUrl;
                             return (
@@ -185,12 +160,6 @@ export default function WatchSidebar({
                     </div>
                 )}
 
-                {/* Episodes Tab */}
-                {activeTab === 'episodes' && mediaType === 'tv' && (
-                    <div style={{ padding: '0' }}>
-                        {seasons && seasons.length > 0 && tvId && tvTitle ? (
-                            <EpisodeSelector
-                                tvId={tvId}
                                 tvTitle={tvTitle}
                                 currentSeason={currentSeason || 1}
                                 currentEpisode={currentEpisode || 1}
@@ -279,6 +248,6 @@ export default function WatchSidebar({
                     }
                 }
             `}</style>
-        </div>
+        </div >
     );
 }

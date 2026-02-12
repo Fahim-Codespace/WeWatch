@@ -22,13 +22,6 @@ interface RoomSettings {
     persistent: boolean;
 }
 
-interface Media {
-    type: 'movie' | 'tv';
-    id: number;
-    title: string;
-    poster?: string;
-}
-
 interface RoomContextType {
     socket: Socket | null;
     roomId: string | null;
@@ -40,10 +33,8 @@ interface RoomContextType {
         currentTime: number;
         sourceType: 'url' | 'local' | 'embed';
     };
-    media: Media | null;
     roomSettings: RoomSettings;
     setVideoUrl: (url: string, type: 'url' | 'local' | 'embed') => void;
-    changeMedia: (media: Media) => void;
     togglePlay: () => void;
     seekVideo: (time: number) => void;
     sendMessage: (text: string) => void;
@@ -67,7 +58,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentTime: 0,
         sourceType: 'url'
     });
-    const [media, setMedia] = useState<Media | null>(null);
     const [roomSettings, setRoomSettings] = useState<RoomSettings>({
         persistent: false
     });
@@ -84,13 +74,10 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         // Socket event listeners
-        newSocket.on('room-state', (state: { participants: Participant[], videoState: any, media?: Media, settings?: RoomSettings }) => {
+        newSocket.on('room-state', (state: { participants: Participant[], videoState: any, settings?: RoomSettings }) => {
             setParticipants(state.participants);
             if (state.videoState.url) {
                 setVideoState(state.videoState);
-            }
-            if (state.media) {
-                setMedia(state.media);
             }
             if (state.settings) {
                 setRoomSettings(state.settings);
@@ -107,10 +94,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         newSocket.on('room-settings-updated', (settings: RoomSettings) => {
             setRoomSettings(settings);
-        });
-
-        newSocket.on('media-changed', (newMedia: Media) => {
-            setMedia(newMedia);
         });
 
         newSocket.on('video-play', () => {
@@ -160,7 +143,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
             currentTime: 0,
             sourceType: 'url'
         });
-        setMedia(null);
         setRoomSettings({ persistent: false });
 
         setRoomId(id);
@@ -172,11 +154,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socket?.emit('update-room-settings', settings);
         // Optimistic update
         setRoomSettings(prev => ({ ...prev, ...settings }));
-    }, [socket]);
-
-    const changeMedia = useCallback((newMedia: Media) => {
-        setMedia(newMedia);
-        socket?.emit('change-media', newMedia);
     }, [socket]);
 
     const setVideoUrl = useCallback((url: string, type: 'url' | 'local' | 'embed') => {
@@ -227,10 +204,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 participants,
                 messages,
                 videoState,
-                media,
                 roomSettings,
                 setVideoUrl,
-                changeMedia,
                 togglePlay,
                 seekVideo,
                 sendMessage,
