@@ -371,6 +371,16 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
 
     const activeStream = screenStream || remoteScreenStream;
 
+    // Determine if we should show the stream overlay
+    // - Show if we are a VIEWER (remoteScreenStream exists)
+    // - Show if we are HOSTING a screen share (screenStream exists) AND it's NOT a local file (prevent mirroring/unmounting source)
+    const showStreamOverlay = !!remoteScreenStream || (!!screenStream && videoState.sourceType !== 'local');
+
+    // Determine if we should show the regular video player (Source)
+    // - Show if NO overlay is active
+    // - OR if we are HOSTING a local file (we need to see/keep the source mounted to capture it)
+    const showSourcePlayer = !showStreamOverlay || (!!screenStream && videoState.sourceType === 'local');
+
     return (
         <div
             className="glass"
@@ -385,17 +395,20 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 border: '1px solid var(--glass-border)'
             }}
         >
-            {/* Screen Share Display */}
-            {activeStream && (
+            {/* Stream Display (Remote Stream or Screen Share Preview) */}
+            {showStreamOverlay && (
                 <video
-                    ref={screenVideoRef}
+                    ref={(el) => {
+                        screenVideoRef.current = el;
+                        if (el) el.srcObject = remoteScreenStream || screenStream;
+                    }}
                     autoPlay
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
             )}
 
-            {/* Regular Video Display */}
-            {!activeStream && videoState.url ? (
+            {/* Regular Video Display (Source) */}
+            {showSourcePlayer && videoState.url ? (
                 videoState.sourceType === 'embed' ? (
                     // Render iframe for embed sources (VidSrc, 2Embed, etc.)
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -459,7 +472,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                         onError={handleVideoError}
                     />
                 )
-            ) : !activeStream && (
+            ) : !showStreamOverlay && (
                 <div className="no-video-container" style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -574,7 +587,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
             )}
 
             {/* Video Overlay / Controls - Only show for non-embed sources AND when there is a video/stream */}
-            {(videoState.url || activeStream) && ((videoState.sourceType !== 'embed') || isFullscreen) && (
+            {(videoState.url || showStreamOverlay) && ((videoState.sourceType !== 'embed') || isFullscreen) && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
