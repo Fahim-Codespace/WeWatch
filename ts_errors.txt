@@ -1,0 +1,2 @@
+src/app/room/[id]/page.tsx(32,9): error TS2339: Property 'changeMedia' does not exist on type 'RoomContextType'.
+src/app/room/[id]/page.tsx(33,9): error TS2339: Property 'media' does not exist on type 'RoomContextType'.

@@ -28,9 +28,7 @@ export default function RoomPage() {
         currentUserName,
         participants,
         roomSettings,
-        updateRoomSettings,
-        changeMedia,
-        media
+        updateRoomSettings
     } = useRoom();
     const [isJoined, setIsJoined] = useState(false);
     const [userName, setUserName] = useState('');
@@ -189,22 +187,7 @@ export default function RoomPage() {
         }
     }, [videoState.url]);
 
-    // Sync Media Context with URL/Title
-    useEffect(() => {
-        if (media) {
-            setMediaTitle(media.title);
 
-            // Validate if we need to update URL (avoid infinite loops)
-            // If the current ID in params doesn't match media.id, update URL
-            const currentMediaParam = searchParams.get('media'); // e.g. movie-123
-            const newMediaParam = `${media.type}-${media.id}`;
-
-            if (currentMediaParam !== newMediaParam) {
-                const newUrl = `/watch?media=${newMediaParam}&title=${encodeURIComponent(media.title)}`;
-                window.history.replaceState(null, '', newUrl);
-            }
-        }
-    }, [media, searchParams]);
 
     // Fetch TV details when ID changes
     useEffect(() => {
@@ -729,13 +712,7 @@ export default function RoomPage() {
                     const type = isMovie ? 'movie' : 'tv';
                     const title = isMovie ? (selectedMedia as any).title : (selectedMedia as any).name;
 
-                    // 1. Sync Metadata
-                    changeMedia({
-                        type,
-                        id: selectedMedia.id,
-                        title,
-                        poster: selectedMedia.poster_path || undefined
-                    });
+
 
                     // 2. Sync Video
                     const sources = getStreamSources(type, selectedMedia.id);

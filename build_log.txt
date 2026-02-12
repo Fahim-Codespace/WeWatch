@@ -1,0 +1,23 @@
+
+> wewatch@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 7.2s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/room/[id]/page.tsx:32:9
+Type error: Property 'changeMedia' does not exist on type 'RoomContextType'.
+
+  30 |         roomSettings,
+  31 |         updateRoomSettings,
+> 32 |         changeMedia,
+     |         ^
+  33 |         media
+  34 |     } = useRoom();
+  35 |     const [isJoined, setIsJoined] = useState(false);
+Next.js build worker exited with code: 1 and signal: null
