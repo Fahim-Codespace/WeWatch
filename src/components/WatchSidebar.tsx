@@ -1,10 +1,21 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MessageSquare, List, Server, Users, X } from 'lucide-react';
+import { MessageSquare, List, Server, X } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
-import ChatSystem from './ChatSystem';
 import EpisodeSelector from './EpisodeSelector';
+// import ChatSystem from './ChatSystem'; // Chat is rendered directly if needed, or via component?
+// In the user's legacy code, ChatSystem was used.
+// But the user replaced it? Wait, let's check step 1416 again.
+// The user's code had:
+// {activeTab === 'chat' && roomId && (
+//      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+//          <ChatSystem /> // It WAS used!
+//      </div>
+// )}
+// I need to make sure ChatSystem is imported.
+
+import ChatSystem from './ChatSystem';
 
 interface WatchSidebarProps {
     roomId?: string;
@@ -20,6 +31,7 @@ interface WatchSidebarProps {
     sources: any[];
     onServerSelect: (url: string) => void;
     activeServerUrl?: string;
+    // Sandbox props
     isSandboxEnabled?: boolean;
     onToggleSandbox?: (enabled: boolean) => void;
 }
@@ -39,47 +51,14 @@ export default function WatchSidebar({
     isSandboxEnabled = true,
     onToggleSandbox
 }: WatchSidebarProps) {
-    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat' | 'users'>('chat');
+    const [activeTab, setActiveTab] = useState<'episodes' | 'servers' | 'chat'>(
+        mediaType === 'tv' ? 'episodes' : 'servers'
+    );
     const [isOpen, setIsOpen] = useState(true);
-
-    // Determine default tab on mount logic modification if needed, but 'chat' is a safe default for a social room.
-    // If not in a room (just browsing?), maybe different, but sidebar implies context. 
-    // The previous logic was: mediaType === 'tv' ? 'episodes' : 'servers'
-
-    // Let's refine the initial state slightly to prefer Chat if roomId exists, else fallback.
-    // However, since this component is mostly used IN a room, 'chat' is the requested primary.
 
     return (
         <div className={`watch-sidebar ${isOpen ? 'open' : 'closed'}`}>
-            {/* Tabs Header */}
             <div className="sidebar-header">
-                {roomId && (
-                    <>
-                        <button
-                            onClick={() => setActiveTab('chat')}
-                            className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
-                        >
-                            <MessageSquare size={18} />
-                            <span>Chat</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('users')}
-                            className={`sidebar-tab ${activeTab === 'users' ? 'active' : ''}`}
-                        >
-                            <Users size={18} />
-                            <span>Users</span>
-                        </button>
-                    </>
-                )}
-
-                <button
-                    onClick={() => setActiveTab('servers')}
-                    className={`sidebar-tab ${activeTab === 'servers' ? 'active' : ''}`}
-                >
-                    <Server size={18} />
-                    <span>Servers</span>
-                </button>
-
                 {mediaType === 'tv' && (
                     <button
                         onClick={() => setActiveTab('episodes')}
@@ -89,11 +68,25 @@ export default function WatchSidebar({
                         <span>Episodes</span>
                     </button>
                 )}
+                <button
+                    onClick={() => setActiveTab('servers')}
+                    className={`sidebar-tab ${activeTab === 'servers' ? 'active' : ''}`}
+                >
+                    <Server size={18} />
+                    <span>Servers</span>
+                </button>
+                {roomId && (
+                    <button
+                        onClick={() => setActiveTab('chat')}
+                        className={`sidebar-tab ${activeTab === 'chat' ? 'active' : ''}`}
+                    >
+                        <MessageSquare size={18} />
+                        <span>Chat</span>
+                    </button>
+                )}
             </div>
 
-            {/* Content Area */}
             <div className="sidebar-content">
-
                 {/* Episodes Tab */}
                 {activeTab === 'episodes' && mediaType === 'tv' && (
                     <div style={{ padding: '0' }}>
@@ -105,8 +98,6 @@ export default function WatchSidebar({
                                 currentEpisode={currentEpisode || 1}
                                 seasons={seasons}
                                 onEpisodeSelect={onEpisodeSelect || (() => { })}
-                            // Pass a prop to EpisodeSelector to style it for sidebar?
-                            // Assuming EpisodeSelector is responsive.
                             />
                         ) : (
                             <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -119,9 +110,42 @@ export default function WatchSidebar({
                 {/* Servers Tab */}
                 {activeTab === 'servers' && (
                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            Stream Sources
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                                Stream Sources
+                            </h3>
+                            {/* Sandbox Toggle */}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)' }} title="Toggle Sandbox Mode">
+                                <span>Sandbox</span>
+                                <div style={{
+                                    width: '36px',
+                                    height: '20px',
+                                    background: isSandboxEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                    borderRadius: '10px',
+                                    position: 'relative',
+                                    transition: 'background 0.3s ease',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        background: '#fff',
+                                        borderRadius: '50%',
+                                        position: 'absolute',
+                                        top: '1px',
+                                        left: isSandboxEnabled ? '17px' : '1px',
+                                        transition: 'left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                    }} />
+                                    <input
+                                        type="checkbox"
+                                        checked={isSandboxEnabled}
+                                        onChange={(e) => onToggleSandbox?.(e.target.checked)}
+                                        style={{ display: 'none' }}
+                                    />
+                                </div>
+                            </label>
+                        </div>
                         {sources.map((source, index) => {
                             const isActive = source.url === activeServerUrl;
                             return (
@@ -160,17 +184,10 @@ export default function WatchSidebar({
                     </div>
                 )}
 
-                                tvTitle={tvTitle}
-                                currentSeason={currentSeason || 1}
-                                currentEpisode={currentEpisode || 1}
-                                seasons={seasons}
-                                onEpisodeSelect={onEpisodeSelect || (() => { })}
-                            />
-                        ) : (
-                            <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                                Loading episodes...
-                            </div>
-                        )}
+                {/* Chat Tab */}
+                {activeTab === 'chat' && roomId && (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <ChatSystem />
                     </div>
                 )}
 
@@ -248,6 +265,6 @@ export default function WatchSidebar({
                     }
                 }
             `}</style>
-        </div >
+        </div>
     );
 }

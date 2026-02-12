@@ -9,9 +9,10 @@ import PlayerSettings from './PlayerSettings';
 
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
+    isSandboxEnabled?: boolean;
 }
 
-export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
+export default function VideoPlayer({ initialSources, isSandboxEnabled = true }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -287,11 +288,13 @@ export default function VideoPlayer({ initialSources }: VideoPlayerProps) {
                         style={{
                             width: '100%',
                             height: '100%',
-                            border: 'none'
+                            border: 'none',
+                            pointerEvents: 'auto'
                         }}
                         referrerPolicy="origin"
                         allowFullScreen
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        {...(isSandboxEnabled ? { sandbox: "allow-scripts allow-same-origin allow-presentation" } : {})}
                     />
                 ) : (
                     // Render video element for direct URLs and local files
