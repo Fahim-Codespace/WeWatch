@@ -95,12 +95,18 @@ export const useScreenShare = () => {
         };
     }, [socket, screenStream]);
 
-    const startScreenShare = useCallback(async () => {
+    const startScreenShare = useCallback(async (customStream?: MediaStream) => {
         try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: false
-            });
+            let stream: MediaStream;
+
+            if (customStream) {
+                stream = customStream;
+            } else {
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: false
+                });
+            }
 
             setScreenStream(stream);
             setIsSharing(true);
@@ -108,10 +114,12 @@ export const useScreenShare = () => {
             // Notify others
             socket?.emit('screen-share-start', {});
 
-            // Handle when user stops sharing via browser UI
-            stream.getVideoTracks()[0].onended = () => {
-                stopScreenShare();
-            };
+            // Handle when user stops sharing via browser UI (only applicable for screen share)
+            if (!customStream) {
+                stream.getVideoTracks()[0].onended = () => {
+                    stopScreenShare();
+                };
+            }
 
             // Create peer connections for broadcasting
             // In a real implementation, you'd create connections to all participants

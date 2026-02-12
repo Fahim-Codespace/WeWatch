@@ -130,6 +130,10 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         }
     };
 
+
+    // Ref to track if we should attempt to capture/broadcast the current video
+    const shouldCaptureLocalStream = useRef(false);
+
     const switchServer = (index: number) => {
         if (index >= 0 && index < videoSources.length) {
             setActiveServerIndex(index);
@@ -140,6 +144,12 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     };
 
     const handleVideoError = () => {
+        // Ignore errors for local files (remote peers' players will fail to load the blob URL)
+        if (videoState.sourceType === 'local') return;
+
+        // Safety check to prevent crashes if videoSources is empty or index is invalid
+        if (!videoSources[activeServerIndex]) return;
+
         // Mark current server as failed
         const updatedSources = [...videoSources];
         updatedSources[activeServerIndex].health = 'failed';
@@ -244,6 +254,45 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         };
     }, [videoState.url]);
 
+    // Capture and Broadcast Local File Stream
+    useEffect(() => {
+        if (shouldCaptureLocalStream.current && videoState.url && videoRef.current) {
+            const videoElement = videoRef.current;
+
+            // Wait for video to be ready (at least metadata loaded)
+            const handleCanPlay = async () => {
+                try {
+                    // @ts-ignore - captureStream is not in standard types heavily yet
+                    if (videoElement.captureStream) {
+                        // @ts-ignore
+                        const stream = videoElement.captureStream();
+                        console.log('Capturing local stream:', stream);
+                        await startScreenShare(stream);
+                        shouldCaptureLocalStream.current = false;
+                    } else if ((videoElement as any).mozCaptureStream) {
+                        // Firefox support
+                        // @ts-ignore
+                        const stream = (videoElement as any).mozCaptureStream();
+                        await startScreenShare(stream);
+                        shouldCaptureLocalStream.current = false;
+                    }
+                } catch (err) {
+                    console.error("Failed to capture local stream:", err);
+                }
+            };
+
+            videoElement.addEventListener('loadedmetadata', handleCanPlay);
+            // If already ready
+            if (videoElement.readyState >= 1) {
+                handleCanPlay();
+            }
+
+            return () => {
+                videoElement.removeEventListener('loadedmetadata', handleCanPlay);
+            };
+        }
+    }, [videoState.url, startScreenShare]);
+
     useEffect(() => {
         if (!videoRef.current) return;
 
@@ -308,6 +357,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const handleLocalFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const url = URL.createObjectURL(e.target.files[0]);
+            shouldCaptureLocalStream.current = true;
             setVideoUrl(url, 'local');
         }
     };
