@@ -252,18 +252,27 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
 
         // Save progress every 5 seconds
         const now = Date.now();
-        if (media && now - lastUpdateRef.current > 5000 && duration > 0 && !isNaN(duration)) {
-            lastUpdateRef.current = now;
-            updateProgress({
-                id: media.id,
-                type: media.type,
-                title: media.title,
-                poster: media.poster,
-                progress: percent,
-                duration: duration,
-                season: media.season,
-                episode: media.episode
+        if (now - lastUpdateRef.current > 5000) {
+            console.log('Attempting to save progress...', {
+                mediaPresent: !!media,
+                duration,
+                canSave: media && duration > 0 && !isNaN(duration)
             });
+
+            if (media && duration > 0 && !isNaN(duration)) {
+                lastUpdateRef.current = now;
+                console.log('Saving progress for:', media.title, percent);
+                updateProgress({
+                    id: media.id,
+                    type: media.type,
+                    title: media.title,
+                    poster: media.poster,
+                    progress: percent,
+                    duration: duration,
+                    season: media.season,
+                    episode: media.episode
+                });
+            }
         }
     };
 
