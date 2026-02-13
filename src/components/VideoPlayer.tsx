@@ -583,14 +583,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             >
                                 <Settings size={20} />
                             </button>
-                            <button
-                                onClick={() => setIsUrlModalOpen(true)}
-                                className="btn-secondary"
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                            >
-                                <LinkIcon size={18} />
-                                Paste URL
-                            </button>
+
                             <button
                                 onClick={toggleFullScreen}
                                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
