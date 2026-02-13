@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Socket } from 'socket.io-client';
 
 interface TransferState {
     status: 'idle' | 'offering' | 'connecting' | 'transferring' | 'completed' | 'error';
@@ -9,9 +10,30 @@ interface TransferState {
     hostId?: string; // Added hostId
 }
 
-const CHUNK_SIZE = 16384; // 16KB chunks
+interface FileShareOffer {
+    offer: RTCSessionDescriptionInit;
+    from: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+}
 
-import { Socket } from 'socket.io-client';
+interface FileShareAnswer {
+    answer: RTCSessionDescriptionInit;
+    from: string;
+}
+
+interface IceCandidateData {
+    candidate: RTCIceCandidateInit;
+    from: string;
+}
+
+interface RequestFileShareData {
+    from: string;
+    userName: string;
+}
+
+const CHUNK_SIZE = 16384; // 16KB chunks
 
 export const useFileTransfer = (socket: Socket | null, currentUserName: string) => {
     const [transferState, setTransferState] = useState<TransferState>({ status: 'idle', progress: 0 });
@@ -22,9 +44,15 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
     const fileRef = useRef<File | null>(null);
     const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
     const dataChannels = useRef<Map<string, RTCDataChannel>>(new Map());
-    const receivedChunks = useRef<ArrayBuffer[]>([]);
+
+    // OPFS State
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileHandleRef = useRef<any>(null); // Use any for OPFS types if missing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const writableStreamRef = useRef<any>(null);
     const receivedBytes = useRef(0);
     const fileMetadata = useRef<{ name: string; size: number; type: string } | null>(null);
+    const writeQueue = useRef<Promise<void>>(Promise.resolve());
 
     const configuration: RTCConfiguration = {
         iceServers: [
@@ -107,11 +135,48 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
 
     // --- Viewer Logic ---
 
-    const requestFile = useCallback((hostId: string) => {
+    const initOPFS = async (fileName: string) => {
+        try {
+            const root = await navigator.storage.getDirectory();
+
+            // Cleanup old files first
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            for await (const name of (root as any).keys()) {
+                if (name.startsWith('wewatch_temp_')) {
+                    try {
+                        await root.removeEntry(name);
+                        console.log('Cleaned up old temp file:', name);
+                    } catch (e) {
+                        console.warn('Failed to delete old file:', name, e);
+                    }
+                }
+            }
+
+            // Create a temp file handler
+            const tempFileName = `wewatch_temp_${Date.now()}_${fileName}`;
+            const fileHandle = await root.getFileHandle(tempFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+
+            fileHandleRef.current = fileHandle;
+            writableStreamRef.current = writable;
+            return true;
+        } catch (error) {
+            console.error("OPFS Initialization failed:", error);
+            // Fallback could be implemented here, but for now we assume modern browser support
+            return false;
+        }
+    };
+
+    const requestFile = useCallback(async (hostId: string) => {
         if (!socket) return;
+
+        // Initialize OPFS if metadata is available
+        if (fileMetadata.current) {
+            await initOPFS(fileMetadata.current.name);
+        }
+
         setIsHost(false);
         setTransferState({ status: 'connecting', progress: 0 });
-        receivedChunks.current = [];
         receivedBytes.current = 0;
         setDownloadUrl(null);
 
@@ -124,7 +189,7 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
         if (!socket) return;
 
         // 1. Host receives request
-        socket.on('request-file-share', async ({ from, userName }) => {
+        socket.on('request-file-share', async ({ from, userName }: RequestFileShareData) => {
             console.log(`User ${userName} (${from}) requested file`);
 
             // Create PeerConnection
@@ -152,7 +217,7 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
         });
 
         // 2. Viewer receives offer
-        socket.on('file-share-offer', async ({ offer, from, fileName, fileSize, fileType }) => {
+        socket.on('file-share-offer', async ({ offer, from, fileName, fileSize, fileType }: FileShareOffer) => {
             console.log('Received offer from host');
 
             const pc = new RTCPeerConnection(configuration);
@@ -162,9 +227,16 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
                 const channel = event.channel;
                 dataChannels.current.set(from, channel);
 
-                channel.onmessage = (e) => {
+                channel.onmessage = async (e) => {
                     const chunk = e.data as ArrayBuffer;
-                    receivedChunks.current.push(chunk);
+
+                    // Queue writes to ensure sequential execution
+                    writeQueue.current = writeQueue.current.then(async () => {
+                        if (writableStreamRef.current) {
+                            await writableStreamRef.current.write(chunk);
+                        }
+                    });
+
                     receivedBytes.current += chunk.byteLength;
 
                     // Calculate progress
@@ -174,11 +246,22 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
 
                         if (receivedBytes.current >= fileMetadata.current.size) {
                             console.log('Download complete!');
-                            const blob = new Blob(receivedChunks.current, { type: fileMetadata.current.type });
-                            const url = URL.createObjectURL(blob);
-                            setDownloadUrl(url);
+
+                            // Wait for last write to finish
+                            await writeQueue.current;
+
+                            if (writableStreamRef.current) {
+                                await writableStreamRef.current.close();
+                            }
+
+                            if (fileHandleRef.current) {
+                                const file = await fileHandleRef.current.getFile();
+                                // Create logic to cleanup older files?
+                                const url = URL.createObjectURL(file);
+                                setDownloadUrl(url);
+                            }
+
                             setTransferState(prev => ({ ...prev, status: 'completed', progress: 100 }));
-                            receivedChunks.current = []; // cleanup RAM? Maybe keep until unmount
                         }
                     }
                 };
@@ -198,7 +281,7 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
         });
 
         // 3. Host receives answer
-        socket.on('file-share-answer', async ({ answer, from }) => {
+        socket.on('file-share-answer', async ({ answer, from }: FileShareAnswer) => {
             const pc = peerConnections.current.get(from);
             if (pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(answer));
@@ -206,7 +289,7 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
         });
 
         // ICE Candidates
-        socket.on('file-share-ice-candidate', async ({ candidate, from }) => {
+        socket.on('file-share-ice-candidate', async ({ candidate, from }: IceCandidateData) => {
             const pc = peerConnections.current.get(from);
             if (pc && candidate) {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -214,7 +297,8 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
         });
 
         // Metadata broadcast (Separate from signaling for simplicity in detection)
-        socket.on('file-share-started', (data) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        socket.on('file-share-started', async (data: any) => {
             if (!isHost) {
                 // Viewer sees a file is available
                 fileMetadata.current = {
@@ -229,6 +313,8 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
                     fileSize: data.fileSize,
                     hostId: data.hostId
                 });
+                // Initialize OPFS as soon as metadata is known
+                await initOPFS(data.fileName);
             }
         });
 
@@ -240,6 +326,14 @@ export const useFileTransfer = (socket: Socket | null, currentUserName: string) 
             socket.off('file-share-started');
         };
     }, [socket, isHost]);
+
+    // Cleanup on unmount or new transfer
+    useEffect(() => {
+        return () => {
+            // Cleanup logic if needed, e.g., closing streams
+            // We generally keep the URL active for playback until the user leaves or starts new
+        };
+    }, []);
 
     return {
         startFileShare,
