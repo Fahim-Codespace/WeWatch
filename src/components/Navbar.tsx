@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Film, Menu, X } from 'lucide-react';
+import { Film, Menu, X, Search } from 'lucide-react';
 import SearchBar from './SearchBar';
 
 export default function Navbar() {
@@ -50,7 +50,7 @@ export default function Navbar() {
                         className="mobile-toggle"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
-                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        {isMenuOpen ? <X size={24} /> : <Search size={24} />}
                     </button>
                 </div>
 
