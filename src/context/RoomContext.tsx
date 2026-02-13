@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
+import { useFileTransfer } from '@/hooks/useFileTransfer';
 
 interface Message {
     id: string;
@@ -51,6 +52,13 @@ interface RoomContextType {
     joinRoom: (id: string, name: string) => void;
     updateRoomSettings: (settings: Partial<RoomSettings>) => void;
     currentUserName: string;
+    fileTransfer: {
+        startFileShare: (file: File) => Promise<void>;
+        requestFile: (hostId: string) => void;
+        transferState: any;
+        downloadUrl: string | null;
+        isHost: boolean;
+    };
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
@@ -73,6 +81,9 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const isLocalAction = useRef(false);
+
+    // File Transfer Hook
+    const fileTransfer = useFileTransfer();
 
     useEffect(() => {
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -237,7 +248,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 sendVoiceMessage,
                 joinRoom,
                 updateRoomSettings,
-                currentUserName
+                currentUserName,
+                fileTransfer
             }}
         >
             {children}

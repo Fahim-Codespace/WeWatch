@@ -211,6 +211,56 @@ io.on('connection', (socket) => {
         });
     });
 
+    // File Transfer Signaling
+    socket.on('file-share-start', (data) => {
+        if (!currentRoomId) return;
+        // Broadcast to all other users in the room that a file stream is available
+        socket.to(currentRoomId).emit('file-share-started', {
+            fileId: data.fileId,
+            fileName: data.fileName,
+            fileSize: data.fileSize,
+            fileType: data.fileType,
+            hostId: socket.id,
+            hostName: currentUserName
+        });
+    });
+
+    socket.on('file-share-stop', () => {
+        if (!currentRoomId) return;
+        socket.to(currentRoomId).emit('file-share-stopped', {
+            hostId: socket.id
+        });
+    });
+
+    socket.on('request-file-share', (data) => {
+        // Viewer requests to connect to Host
+        io.to(data.to).emit('request-file-share', {
+            from: socket.id,
+            userName: currentUserName
+        });
+    });
+
+    socket.on('file-share-offer', (data) => {
+        io.to(data.to).emit('file-share-offer', {
+            ...data,
+            from: socket.id
+        });
+    });
+
+    socket.on('file-share-answer', (data) => {
+        io.to(data.to).emit('file-share-answer', {
+            ...data,
+            from: socket.id
+        });
+    });
+
+    socket.on('file-share-ice-candidate', (data) => {
+        io.to(data.to).emit('file-share-ice-candidate', {
+            ...data,
+            from: socket.id
+        });
+    });
+
     // Disconnect handling
     socket.on('disconnect', () => {
         if (currentRoomId) {

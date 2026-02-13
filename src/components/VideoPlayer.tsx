@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, Film } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, Film, Loader, Download } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
@@ -16,7 +16,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
-    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId } = useRoom();
+    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, fileTransfer } = useRoom();
     const { isSharing, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
     const [showControls, setShowControls] = useState(true);
     const [volume, setVolume] = useState(1);
@@ -124,12 +124,25 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
 
     // Socket listeners removed - RoomContext handles state updates
 
-    // HLS.js integration
+    // HLS.js integration & P2P File Playback
     useEffect(() => {
-        if (!videoRef.current || !videoState.url) return;
+        if (!videoRef.current) return;
+
+        let url = videoState.url;
+
+        // P2P File Transfer Logic
+        if (videoState.sourceType === 'local' && !fileTransfer.isHost) {
+            if (fileTransfer.downloadUrl) {
+                url = fileTransfer.downloadUrl;
+            } else {
+                // Not ready yet
+                return;
+            }
+        }
+
+        if (!url) return;
 
         const video = videoRef.current;
-        const url = videoState.url;
 
         // Clean up previous HLS instance
         if (hlsRef.current) {
@@ -572,6 +585,111 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                         onServerChange={switchServer}
                     />
                 </div>
+            )}
+            {/* P2P File Transfer Overlay */}
+            {!fileTransfer.isHost && (
+                <>
+                    {/* Downloading Overlay */}
+                    {(fileTransfer.transferState.status === 'connecting' || fileTransfer.transferState.status === 'transferring') && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0,0,0,0.8)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 20
+                        }}>
+                            <div className="loading-spinner" style={{ marginBottom: '20px' }}>
+                                <Loader size={48} className="animate-spin" color="var(--primary)" />
+                            </div>
+                            <h3 style={{ color: '#fff', marginBottom: '8px' }}>Downloading File...</h3>
+                            <div style={{
+                                width: '300px',
+                                height: '6px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{
+                                    width: `${fileTransfer.transferState.progress}%`,
+                                    height: '100%',
+                                    background: 'var(--primary)',
+                                    transition: 'width 0.2s ease'
+                                }} />
+                            </div>
+                            <p style={{ color: 'var(--text-muted)', marginTop: '8px', fontSize: '0.9rem' }}>
+                                {fileTransfer.transferState.progress}% of {fileTransfer.transferState.fileSize ? (fileTransfer.transferState.fileSize / 1024 / 1024).toFixed(1) + ' MB' : 'Unknown size'}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Accept Transfer Overlay */}
+                    {fileTransfer.transferState.status === 'idle' && fileTransfer.transferState.fileName && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0,0,0,0.85)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 20
+                        }}>
+                            <div style={{
+                                width: '80px',
+                                height: '80px',
+                                background: 'rgba(0, 255, 136, 0.1)',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '20px',
+                                border: '1px solid var(--primary)'
+                            }}>
+                                <Download size={40} color="var(--primary)" />
+                            </div>
+                            <h2 style={{ color: '#fff', marginBottom: '8px' }}>P2P File Stream Available</h2>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+                                The host is streaming <strong>{fileTransfer.transferState.fileName}</strong>
+                            </p>
+                            <button
+                                onClick={() => {
+                                    if (fileTransfer.transferState.hostId) {
+                                        fileTransfer.requestFile(fileTransfer.transferState.hostId);
+                                    }
+                                }}
+                                style={{
+                                    padding: '12px 24px',
+                                    background: 'var(--primary)',
+                                    color: '#000',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '1rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    boxShadow: '0 0 20px var(--primary-glow)'
+                                }}
+                            >
+                                <Download size={18} />
+                                Download & Watch
+                            </button>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '16px', maxWidth: '400px', textAlign: 'center' }}>
+                                Note: This file will be downloaded to your device's memory for playback. Large files may take some time.
+                            </p>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

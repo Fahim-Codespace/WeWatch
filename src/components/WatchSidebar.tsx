@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MessageSquare, List, Server, X } from 'lucide-react';
+import { MessageSquare, List, Server, X, Upload } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import EpisodeSelector from './EpisodeSelector';
 // import ChatSystem from './ChatSystem'; // Chat is rendered directly if needed, or via component?
@@ -55,6 +55,7 @@ export default function WatchSidebar({
         mediaType === 'tv' ? 'episodes' : 'servers'
     );
     const [isOpen, setIsOpen] = useState(true);
+    const { fileTransfer, setVideoUrl } = useRoom();
 
     return (
         <div className={`watch-sidebar ${isOpen ? 'open' : 'closed'}`}>
@@ -146,6 +147,66 @@ export default function WatchSidebar({
                                 </div>
                             </label>
                         </div>
+
+                        {/* P2P File Stream Controls */}
+                        <div style={{
+                            padding: '12px',
+                            background: 'var(--secondary)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '8px',
+                            marginBottom: '6px'
+                        }}>
+                            <h4 style={{ fontSize: '0.8rem', color: '#fff', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Server size={14} color="var(--primary)" />
+                                Local File Stream (Beta)
+                            </h4>
+                            {/* File Input */}
+                            <input
+                                type="file"
+                                id="local-file-upload"
+                                style={{ display: 'none' }}
+                                accept="video/*"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        const file = e.target.files[0];
+                                        fileTransfer.startFileShare(file);
+                                        // Set local video for Host immediately
+                                        const localUrl = URL.createObjectURL(file);
+                                        setVideoUrl(localUrl, 'local');
+                                    }
+                                }}
+                            />
+
+                            <button
+                                onClick={() => document.getElementById('local-file-upload')?.click()}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: 'rgba(0, 255, 136, 0.1)',
+                                    border: '1px solid var(--primary)',
+                                    borderRadius: '6px',
+                                    color: 'var(--primary)',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <Upload size={14} />
+                                {fileTransfer.isHost ? 'Stream New File' : 'Select Video File'}
+                            </button>
+
+                            {fileTransfer.isHost && (
+                                <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                    Status: {fileTransfer.transferState.status}
+                                    {fileTransfer.transferState.progress > 0 && ` (${fileTransfer.transferState.progress}%)`}
+                                </div>
+                            )}
+                        </div>
+
                         {sources.map((source, index) => {
                             const isActive = source.url === activeServerUrl;
                             return (

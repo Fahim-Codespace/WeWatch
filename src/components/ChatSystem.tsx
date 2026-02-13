@@ -104,7 +104,7 @@ const CustomAudioPlayer = ({ src, sender, isMe }: { src: string, sender: string,
 };
 
 export default function ChatSystem({ showUsersOnly = false }: { showUsersOnly?: boolean }) {
-    const { messages, sendMessage, sendVoiceMessage, participants, currentUserName } = useRoom();
+    const { messages, sendMessage, sendVoiceMessage, participants, currentUserName, socket } = useRoom();
     const [inputText, setInputText] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     // Removed internal activeTab state
@@ -369,6 +369,73 @@ export default function ChatSystem({ showUsersOnly = false }: { showUsersOnly?: 
                                 `}</style>
                             </div>
                         )}
+                    </div>
+
+                    {/* Watchers Section (Restored) */}
+                    <div style={{
+                        padding: '16px 20px',
+                        borderTop: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.2)'
+                    }}>
+                        <div style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            marginBottom: '12px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <Users size={14} />
+                            <span>Room Members ({participants.length})</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                            {participants.map((p) => (
+                                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '8px',
+                                        background: p.id === socket?.id ? 'var(--primary)' : 'var(--secondary)',
+                                        border: '1px solid var(--glass-border)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: p.id === socket?.id ? '#000' : '#fff',
+                                        fontWeight: '700',
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        {p.name[0]?.toUpperCase()}
+                                    </div>
+                                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                                        <div style={{
+                                            fontWeight: '500',
+                                            fontSize: '0.9rem',
+                                            color: '#fff',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}>
+                                            {p.name} {p.id === socket?.id && '(You)'}
+                                        </div>
+                                    </div>
+                                    {p.isHost && (
+                                        <div style={{
+                                            fontSize: '0.65rem',
+                                            background: 'rgba(255, 215, 0, 0.1)',
+                                            color: '#ffd700',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            border: '1px solid rgba(255, 215, 0, 0.2)'
+                                        }}>
+                                            HOST
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </>
             ) : (
