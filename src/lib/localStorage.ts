@@ -17,6 +17,7 @@ export interface WatchlistItem {
     type: 'movie' | 'tv';
     title: string;
     poster: string | null;
+    vote_average: number;
     addedAt: number;
 }
 
@@ -50,6 +51,7 @@ export const addToWatchlist = (media: MediaDetails | TVShowDetails, type: 'movie
         type,
         title,
         poster: media.poster_path,
+        vote_average: media.vote_average || 0,
         addedAt: Date.now()
     };
 

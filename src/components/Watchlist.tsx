@@ -14,7 +14,7 @@ export default function Watchlist() {
         title: item.title,
         name: item.title,
         poster_path: item.poster,
-        vote_average: 0,
+        vote_average: item.vote_average || 0,
         overview: '',
         media_type: item.type // Important for routing
     }));

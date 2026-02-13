@@ -16,11 +16,35 @@ interface MediaCardProps {
 
 export default function MediaCard({ media, mediaType, onClick }: MediaCardProps) {
     const router = useRouter();
+
+    // Check for Date Markers
+    if ((media as any).media_type === 'date_marker') {
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minWidth: '100px', // Narrower than media card
+                color: 'var(--text-muted)',
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)', // Standard western vertical text
+                fontSize: '1rem',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                borderLeft: '1px solid var(--glass-border)',
+                paddingLeft: '16px'
+            }}>
+                {(media as any).title}
+            </div>
+        );
+    }
+
     const title = getMediaTitle(media);
     const releaseDate = getMediaReleaseDate(media);
     const year = getYear(releaseDate);
     const rating = formatRating(media.vote_average);
-    const type = mediaType || (isMovie(media) ? 'movie' : 'tv');
+    const type = mediaType || (media as any).media_type || (isMovie(media) ? 'movie' : 'tv');
 
     const handleClick = () => {
         if (onClick) {
@@ -56,6 +80,25 @@ export default function MediaCard({ media, mediaType, onClick }: MediaCardProps)
                     sizes="(max-width: 768px) 50vw, 200px"
                 />
             </div>
+
+            {/* Progress Bar (If available) */}
+            {(media as any).progress !== undefined && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: 'rgba(255,255,255,0.2)'
+                }}>
+                    <div style={{
+                        height: '100%',
+                        width: `${(media as any).progress}%`,
+                        background: 'var(--primary)',
+                        boxShadow: '0 0 10px var(--primary)'
+                    }} />
+                </div>
+            )}
 
             {/* Overlay on Hover */}
             <div className="media-card-overlay" style={{
