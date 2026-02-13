@@ -6,13 +6,22 @@ import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
 import PlayerSettings from './PlayerSettings';
+import { useWatchHistory } from '@/hooks/useWatchHistory';
 
 interface VideoPlayerProps {
     initialSources?: { label: string; url: string }[];
     isSandboxEnabled?: boolean;
+    media?: {
+        id: number;
+        type: 'movie' | 'tv';
+        title: string;
+        poster: string | null;
+        season?: number;
+        episode?: number;
+    };
 }
 
-export default function VideoPlayer({ initialSources, isSandboxEnabled = true }: VideoPlayerProps) {
+export default function VideoPlayer({ initialSources, isSandboxEnabled = true, media }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -34,6 +43,9 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
     const [currentQuality, setCurrentQuality] = useState(-1); // -1 means auto
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
+
+    const { updateProgress } = useWatchHistory();
+    const lastUpdateRef = useRef(0);
 
     useEffect(() => {
         if (initialSources && initialSources.length > 0) {
@@ -229,12 +241,29 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         if (!videoRef.current) return;
         const current = videoRef.current.currentTime;
         const duration = videoRef.current.duration;
-        setProgress((current / duration) * 100);
+        const percent = (current / duration) * 100;
+        setProgress(percent);
 
         // Update buffered range
         if (videoRef.current.buffered.length > 0) {
             const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
             setBuffered((bufferedEnd / duration) * 100);
+        }
+
+        // Save progress every 5 seconds
+        const now = Date.now();
+        if (media && now - lastUpdateRef.current > 5000 && duration > 0 && !isNaN(duration)) {
+            lastUpdateRef.current = now;
+            updateProgress({
+                id: media.id,
+                type: media.type,
+                title: media.title,
+                poster: media.poster,
+                progress: percent,
+                duration: duration,
+                season: media.season,
+                episode: media.episode
+            });
         }
     };
 

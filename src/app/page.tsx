@@ -6,6 +6,8 @@ import ProviderSelector from "@/components/ProviderSelector";
 import { Film } from "lucide-react";
 import { getTrending, getPopularMovies, getPopularTVShows } from "@/lib/tmdb";
 import Link from "next/link";
+import ContinueWatching from "@/components/ContinueWatching";
+import Watchlist from "@/components/Watchlist";
 
 export default async function Home() {
   // Fetch trending and popular content
@@ -46,6 +48,8 @@ export default async function Home() {
 
       {/* Content Sections */}
       <div id="browse" style={{ flex: 1, paddingBottom: '60px' }}>
+        <ContinueWatching />
+        <Watchlist />
         <MediaCarousel title="🔥 Trending Now" items={trendingAll.results.slice(0, 20)} />
         <MediaCarousel title="🎬 Popular Movies" items={popularMovies.results.slice(0, 20)} mediaType="movie" />
         <MediaCarousel title="📺 Popular TV Shows" items={popularTVShows.results.slice(0, 20)} mediaType="tv" />

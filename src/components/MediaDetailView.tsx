@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Play, Plus, Star, Calendar, Clock, Globe, DollarSign, X, ArrowLeft } from 'lucide-react';
+import { Play, Plus, X, ArrowLeft, Star, Calendar, Clock, Check } from 'lucide-react';
 import { MediaDetails, TVShowDetails, Video } from '@/types/media';
 import { getImageUrl } from '@/lib/tmdb';
 import { formatRuntime, getYear, formatRating } from '@/lib/streamSources';
+import { useWatchHistory } from '@/hooks/useWatchHistory';
 
 interface MediaDetailViewProps {
     media: MediaDetails | TVShowDetails;
@@ -19,6 +20,8 @@ interface MediaDetailViewProps {
 export default function MediaDetailView({ media, type, onPlay, onBack }: MediaDetailViewProps) {
     const router = useRouter();
     const [showTrailer, setShowTrailer] = useState(false);
+    const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchHistory();
+    const isInList = watchlist.some(item => item.id === media.id && item.type === type);
 
     const title = type === 'movie' ? (media as any).title : (media as any).name;
     const releaseDate = type === 'movie' ? (media as any).release_date : (media as any).first_air_date;
@@ -171,9 +174,25 @@ export default function MediaDetailView({ media, type, onPlay, onBack }: MediaDe
                                 </Link>
                             )}
 
-                            <button className="btn-watchlist">
-                                <Plus size={24} />
-                                Watchlist
+                            <button
+                                className="btn-watchlist"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    if (isInList) {
+                                        removeFromWatchlist(media.id, type);
+                                    } else {
+                                        addToWatchlist(media, type);
+                                    }
+                                }}
+                                style={{
+                                    background: isInList ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                    borderColor: isInList ? 'var(--primary)' : 'rgba(255, 255, 255, 0.2)',
+                                    color: isInList ? 'var(--primary)' : '#fff'
+                                }}
+                            >
+                                {isInList ? <Check size={24} /> : <Plus size={24} />}
+                                {isInList ? 'In Watchlist' : 'Watchlist'}
                             </button>
 
                             {trailer && (

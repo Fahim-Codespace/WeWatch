@@ -562,6 +562,14 @@ export default function RoomPage() {
                 <div className="video-area">
                     <VideoPlayer
                         isSandboxEnabled={isSandboxEnabled}
+                        media={mediaId ? {
+                            id: mediaId,
+                            type: isTvShow ? 'tv' : 'movie',
+                            title: mediaTitle || 'Unknown',
+                            poster: isTvShow ? (tvDetails?.poster_path || null) : (movieDetails?.poster_path || null),
+                            season: isTvShow ? currentSeason : undefined,
+                            episode: isTvShow ? currentEpisode : undefined
+                        } : undefined}
                     />
 
 
