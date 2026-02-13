@@ -57,6 +57,15 @@ export default function WatchSidebar({
     const [isOpen, setIsOpen] = useState(true);
     const { fileTransfer, setVideoUrl } = useRoom();
 
+    // Default to 'episodes' tab when mediaType changes to 'tv'
+    React.useEffect(() => {
+        if (mediaType === 'tv') {
+            setActiveTab('episodes');
+        } else {
+            setActiveTab('servers');
+        }
+    }, [mediaType]);
+
     return (
         <div className={`watch-sidebar ${isOpen ? 'open' : 'closed'}`}>
             <div className="sidebar-header">
