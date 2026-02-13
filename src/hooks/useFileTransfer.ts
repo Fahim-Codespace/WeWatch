@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useRoom } from '@/context/RoomContext';
 
 interface TransferState {
     status: 'idle' | 'offering' | 'connecting' | 'transferring' | 'completed' | 'error';
@@ -12,8 +11,9 @@ interface TransferState {
 
 const CHUNK_SIZE = 16384; // 16KB chunks
 
-export const useFileTransfer = () => {
-    const { socket, currentUserName } = useRoom();
+import { Socket } from 'socket.io-client';
+
+export const useFileTransfer = (socket: Socket | null, currentUserName: string) => {
     const [transferState, setTransferState] = useState<TransferState>({ status: 'idle', progress: 0 });
     const [isHost, setIsHost] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);

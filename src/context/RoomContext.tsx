@@ -83,7 +83,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isLocalAction = useRef(false);
 
     // File Transfer Hook
-    const fileTransfer = useFileTransfer();
+    const fileTransfer = useFileTransfer(socket, currentUserName);
 
     useEffect(() => {
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
