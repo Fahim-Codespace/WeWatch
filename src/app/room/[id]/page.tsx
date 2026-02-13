@@ -9,12 +9,13 @@ import ChatSystem from '@/components/ChatSystem';
 import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
 import InviteModal from '@/components/InviteModal';
+import MediaDetailView from '@/components/MediaDetailView';
 import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search, ArrowLeft } from 'lucide-react';
 import { getStreamSources } from '@/lib/streamSources';
-import { getTrending, getTVShowDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
+import { getTrending, getTVShowDetails, getMovieDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
 import EpisodeSelector from '@/components/EpisodeSelector';
 import WatchSidebar from '@/components/WatchSidebar';
-import { Episode, Season } from '@/types/media';
+import { MediaDetails, TVShowDetails, Season } from '@/types/media';
 
 export default function RoomPage() {
     const params = useParams();
@@ -40,6 +41,7 @@ export default function RoomPage() {
     const [browseResults, setBrowseResults] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [previewMedia, setPreviewMedia] = useState<{ media: any; type: 'movie' | 'tv' } | null>(null);
     const [shouldInitVideo, setShouldInitVideo] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
 
@@ -50,7 +52,8 @@ export default function RoomPage() {
     const [currentSeason, setCurrentSeason] = useState(1);
     const [currentEpisode, setCurrentEpisode] = useState(1);
     const [seasons, setSeasons] = useState<Season[]>([]);
-    const [tvDetails, setTvDetails] = useState<any>(null);
+    const [tvDetails, setTvDetails] = useState<TVShowDetails | null>(null);
+    const [movieDetails, setMovieDetails] = useState<MediaDetails | null>(null);
 
     const [rememberName, setRememberName] = useState(false);
     const [isSandboxEnabled, setIsSandboxEnabled] = useState(true);
@@ -210,20 +213,25 @@ export default function RoomPage() {
 
     // Fetch TV details when ID changes
     useEffect(() => {
-        if (!tvId) return;
+        if (!mediaId) return;
 
         const fetchData = async () => {
             try {
-                const details = await getTVShowDetails(tvId);
-                setTvDetails(details);
-                setSeasons(details.seasons || []);
+                if (isTvShow) {
+                    const details = await getTVShowDetails(mediaId);
+                    setTvDetails(details);
+                    setSeasons(details.seasons || []);
+                } else {
+                    const details = await getMovieDetails(mediaId);
+                    setMovieDetails(details);
+                }
             } catch (error) {
-                console.error("Error fetching TV details:", error);
+                console.error("Error fetching details:", error);
             }
         };
 
         fetchData();
-    }, [tvId]);
+    }, [mediaId, isTvShow]);
 
 
 
@@ -440,8 +448,16 @@ export default function RoomPage() {
                     {mediaId && (
                         <button
                             onClick={() => {
-                                const type = isTvShow ? 'tv' : 'movie';
-                                router.push(`/media/${type}/${mediaId}`);
+                                // If playing, show details instead of leaving
+                                if (isTvShow && tvDetails) {
+                                    setPreviewMedia({ media: tvDetails, type: 'tv' });
+                                } else if (!isTvShow && movieDetails) {
+                                    setPreviewMedia({ media: movieDetails, type: 'movie' });
+                                } else {
+                                    // Fallback if no details loaded (shouldn't happen often)
+                                    const type = isTvShow ? 'tv' : 'movie';
+                                    router.push(`/media/${type}/${mediaId}`);
+                                }
                             }}
                             className="btn-back"
                             title="Back to details"
@@ -727,29 +743,67 @@ export default function RoomPage() {
                 isOpen={showBrowseModal}
                 onClose={() => setShowBrowseModal(false)}
                 onSelect={(selectedMedia) => {
+                    // Update: Show details instead of playing immediately
                     const isMovie = 'title' in selectedMedia;
                     const type = isMovie ? 'movie' : 'tv';
-                    const title = isMovie ? (selectedMedia as any).title : (selectedMedia as any).name;
 
-                    // 1. Sync Metadata
-                    changeMedia({
-                        type,
-                        id: selectedMedia.id,
-                        title,
-                        poster: selectedMedia.poster_path || undefined
-                    });
+                    // Fetch full details if needed, or use selectedMedia if it has enough info. 
+                    // Usually browse results are partial. 
+                    // For now, we'll try to use what we have, or fetch via a separate effect if needed.
+                    // But we need a way to pass this to MediaDetailView.
+                    // Let's assume selectedMedia is enough for preview, or we fetch details.
+                    // Ideally we should set a state that triggers the Detail View.
 
-                    // 2. Sync Video
-                    const sources = getStreamSources(type, selectedMedia.id);
-                    if (sources.length > 0) {
-                        setVideoUrl(sources[0].url, 'embed');
-                    }
-
-                    // 3. Update Local URL immediately for responsiveness
-                    router.push(`/watch?media=${type}-${selectedMedia.id}&title=${encodeURIComponent(title)}`);
+                    // We need to fetch full details because Browse often returns partial data
+                    // (though MediaDetailView handles what it gets). 
+                    // Let's set a "previewMedia" state.
+                    setPreviewMedia({ media: selectedMedia, type });
                     setShowBrowseModal(false);
                 }}
             />
+
+            {/* Media Detail Preview Overlay */}
+            {previewMedia && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 2000,
+                    background: '#050505',
+                    overflowY: 'auto'
+                }}>
+                    <MediaDetailView
+                        media={previewMedia.media as any}
+                        type={previewMedia.type as 'movie' | 'tv'}
+                        onBack={() => setPreviewMedia(null)}
+                        onPlay={() => {
+                            const media = previewMedia.media;
+                            const type = previewMedia.type;
+                            const isMovie = type === 'movie';
+                            const title = isMovie ? (media as any).title : (media as any).name;
+
+                            // 1. Sync Metadata
+                            changeMedia({
+                                type,
+                                id: media.id,
+                                title,
+                                poster: media.poster_path || undefined
+                            });
+
+                            // 2. Sync Video
+                            const sources = getStreamSources(type, media.id);
+                            if (sources.length > 0) {
+                                setVideoUrl(sources[0].url, 'embed');
+                            }
+
+                            // 3. Update Local URL (History only, no navigation away)
+                            const newUrl = `/room/${params.id}?media=${type}-${media.id}&title=${encodeURIComponent(title)}`;
+                            window.history.pushState(null, '', newUrl);
+
+                            setPreviewMedia(null);
+                        }}
+                    />
+                </div>
+            )}
             {/* Room Settings Modal */}
             <RoomSettingsModal
                 isOpen={showSettingsModal}

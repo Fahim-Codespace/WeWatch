@@ -12,9 +12,11 @@ import { formatRuntime, getYear, formatRating } from '@/lib/streamSources';
 interface MediaDetailViewProps {
     media: MediaDetails | TVShowDetails;
     type: 'movie' | 'tv';
+    onPlay?: () => void;
+    onBack?: () => void;
 }
 
-export default function MediaDetailView({ media, type }: MediaDetailViewProps) {
+export default function MediaDetailView({ media, type, onPlay, onBack }: MediaDetailViewProps) {
     const router = useRouter();
     const [showTrailer, setShowTrailer] = useState(false);
 
@@ -49,7 +51,13 @@ export default function MediaDetailView({ media, type }: MediaDetailViewProps) {
 
                 {/* Back Button */}
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        if (onBack) {
+                            onBack();
+                        } else {
+                            router.back();
+                        }
+                    }}
                     style={{
                         position: 'absolute',
                         top: '40px',
@@ -145,16 +153,23 @@ export default function MediaDetailView({ media, type }: MediaDetailViewProps) {
 
                         {/* Action Buttons */}
                         <div className="action-buttons">
-                            <Link href={
-                                type === 'tv'
-                                    ? `/watch?media=${type}-${media.id}&title=${encodeURIComponent(title)}&season=1&episode=1`
-                                    : `/watch?media=${type}-${media.id}&title=${encodeURIComponent(title)}`
-                            }>
-                                <button className="btn-play">
+                            {onPlay ? (
+                                <button className="btn-play" onClick={onPlay}>
                                     <Play size={24} fill="#000" />
                                     Play Now
                                 </button>
-                            </Link>
+                            ) : (
+                                <Link href={
+                                    type === 'tv'
+                                        ? `/watch?media=${type}-${media.id}&title=${encodeURIComponent(title)}&season=1&episode=1`
+                                        : `/watch?media=${type}-${media.id}&title=${encodeURIComponent(title)}`
+                                }>
+                                    <button className="btn-play">
+                                        <Play size={24} fill="#000" />
+                                        Play Now
+                                    </button>
+                                </Link>
+                            )}
 
                             <button className="btn-watchlist">
                                 <Plus size={24} />
