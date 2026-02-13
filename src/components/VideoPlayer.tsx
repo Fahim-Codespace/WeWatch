@@ -269,10 +269,21 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         return `${hrs > 0 ? hrs + ':' : ''}${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
     };
 
-    const handleLocalFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLocalFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const url = URL.createObjectURL(e.target.files[0]);
-            setVideoUrl(url, 'local');
+            const file = e.target.files[0];
+
+            // If in a room, start P2P stream
+            if (socket && roomId) {
+                await fileTransfer.startFileShare(file);
+                // The host also needs to see the video locally
+                const url = URL.createObjectURL(file);
+                setVideoUrl(url, 'local');
+            } else {
+                // Offline / No Room
+                const url = URL.createObjectURL(file);
+                setVideoUrl(url, 'local');
+            }
         }
     };
 
@@ -358,7 +369,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                             Open File
                             <input type="file" accept="video/*" style={{ display: 'none' }} onChange={handleLocalFile} />
                         </label>
-                        <button className="btn-primary" onClick={() => setIsUrlModalOpen(true)}>
+                        <button className="btn-secondary" onClick={() => setIsUrlModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <LinkIcon size={18} />
                             Paste URL
                         </button>
@@ -438,7 +449,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                                 className="btn-secondary"
                                 style={{ alignSelf: 'flex-start' }}
                             >
-                                + Add Another Server
+                                Add another URL
                             </button>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button type="submit" className="btn-primary" style={{ flex: 1 }}>Load Video</button>
@@ -571,6 +582,14 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                                 }}
                             >
                                 <Settings size={20} />
+                            </button>
+                            <button
+                                onClick={() => setIsUrlModalOpen(true)}
+                                className="btn-secondary"
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <LinkIcon size={18} />
+                                Paste URL
                             </button>
                             <button
                                 onClick={toggleFullScreen}
