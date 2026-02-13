@@ -189,6 +189,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
         } else {
             // Regular video file
             video.src = url;
+            video.load(); // Force load for blobs/files
         }
 
         return () => {
@@ -197,16 +198,24 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                 hlsRef.current = null;
             }
         };
-    }, [videoState.url]);
+    }, [videoState.url, fileTransfer.downloadUrl, fileTransfer.isHost, videoState.sourceType]); // Added dependencies
 
     useEffect(() => {
         if (!videoRef.current) return;
 
-        if (videoState.playing) {
-            videoRef.current.play().catch(e => console.log("Autoplay prevented", e));
-        } else {
-            videoRef.current.pause();
-        }
+        const playVideo = async () => {
+            try {
+                if (videoState.playing) {
+                    await videoRef.current?.play();
+                } else {
+                    videoRef.current?.pause();
+                }
+            } catch (e) {
+                console.warn('Playback state change failed:', e);
+            }
+        };
+
+        playVideo();
     }, [videoState.playing]);
 
     useEffect(() => {
@@ -321,6 +330,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true }:
                     // Render video element for direct URLs and local files
                     <video
                         ref={videoRef}
+                        playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         onTimeUpdate={handleTimeUpdate}
                         onClick={() => togglePlay()}
