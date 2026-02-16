@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, Film, Loader, Download } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Link as LinkIcon, FileVideo, Monitor, MonitorOff, Film, Loader, Download, Info } from 'lucide-react';
 import { useRoom } from '@/context/RoomContext';
 import { useScreenShare } from '@/hooks/useScreenShare';
 import Hls from 'hls.js';
@@ -349,34 +349,81 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
             }}
         >
             {/* Screen Share Display */}
-            {activeStream && (
+            {activeStream ? (
                 <video
                     ref={screenVideoRef}
                     autoPlay
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
-            )}
-
-            {/* Regular Video Display */}
-            {!activeStream && videoState.url ? (
+            ) : videoState.url ? (
                 videoState.sourceType === 'embed' ? (
-                    // Render iframe for embed sources (VidSrc, 2Embed, etc.)
-                    <iframe
-                        key={videoState.url}
-                        src={videoState.url}
-                        style={{
+                    !videoState.playing ? (
+                        // Start Session Overlay for Embeds
+                        <div style={{
                             width: '100%',
                             height: '100%',
-                            border: 'none',
-                            pointerEvents: 'auto'
-                        }}
-                        referrerPolicy="origin"
-                        allowFullScreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        {...(isSandboxEnabled ? { sandbox: "allow-scripts allow-same-origin allow-presentation" } : {})}
-                    />
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url(' + (media?.poster || '') + ') center/cover no-repeat',
+                            color: '#fff',
+                            gap: '24px',
+                            zIndex: 10
+                        }}>
+                            <div style={{ textAlign: 'center', maxWidth: '600px', padding: '0 20px' }}>
+                                <h2 style={{ fontSize: '2rem', marginBottom: '10px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                                    {media?.title || 'Synchronized Session'}
+                                </h2>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                                    Ready to watch? Click start to begin for everyone.
+                                </p>
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mt-6 text-sm text-yellow-200/80 max-w-md mx-auto">
+                                    <p className="flex items-center gap-2 justify-center font-medium mb-1">
+                                        <Info size={16} /> Note on controls
+                                    </p>
+                                    Once started, pause/seek controls inside the video player are local only.
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => togglePlay()}
+                                className="btn-primary"
+                                style={{
+                                    padding: '16px 48px',
+                                    fontSize: '1.2rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    boxShadow: '0 0 30px var(--primary-glow)',
+                                    transform: 'scale(1)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Play size={28} fill="currentColor" />
+                                Start Session
+                            </button>
+                        </div>
+                    ) : (
+                        // Render iframe for embed sources
+                        <iframe
+                            key={videoState.url}
+                            src={videoState.url}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none',
+                                pointerEvents: 'auto',
+                                zIndex: 1
+                            }}
+                            referrerPolicy="origin"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            {...(isSandboxEnabled ? { sandbox: "allow-scripts allow-same-origin allow-presentation" } : {})}
+                        />
+                    )
                 ) : (
-                    // Render video element for direct URLs and local files
+                    // Render video element HTML5
                     <video
                         ref={videoRef}
                         playsInline
@@ -386,7 +433,8 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                         onError={handleVideoError}
                     />
                 )
-            ) : !activeStream && (
+            ) : (
+                // No Video Selected
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -414,6 +462,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                     </div>
                 </div>
             )}
+
 
             {/* URL Modal */}
             {isUrlModalOpen && (
@@ -496,285 +545,323 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                         </form>
                     </div>
                 </div>
-            )}
+            )
+            }
 
-            {/* Video Overlay / Controls - Only show for non-embed sources */}
-            {videoState.sourceType !== 'embed' && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: '40px 20px 20px',
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                    opacity: showControls ? 1 : 0,
-                    transition: 'opacity 0.4s cubic-bezier(0,4, 0, 0.2, 1)',
-                    pointerEvents: showControls ? 'all' : 'none'
-                }}>
-                    {/* Progress Bar */}
-                    <div style={{ position: 'relative', height: '6px', marginBottom: '20px', cursor: 'pointer' }}>
-                        <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}></div>
-                        <div style={{ position: 'absolute', width: `${buffered}%`, height: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}></div>
-                        <div style={{ position: 'absolute', width: `${progress}%`, height: '100%', background: 'var(--primary)', borderRadius: '3px', boxShadow: '0 0 10px var(--primary-glow)' }}></div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={progress}
-                            onChange={handleSeek}
-                            style={{
-                                position: 'absolute',
-                                width: '100%',
-                                height: '100%',
-                                opacity: 0,
-                                cursor: 'pointer'
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <button
-                                onClick={() => togglePlay()}
-                                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                            >
-                                {videoState.playing ? <Pause size={24} fill="#fff" /> : <Play size={24} fill="#fff" />}
-                            </button>
-                            <button style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
-                                <SkipForward size={20} fill="#fff" />
-                            </button>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <button
-                                    onClick={() => setIsMuted(!isMuted)}
-                                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                                >
-                                    {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                                </button>
+            {/* Video Overlay / Controls */}
+            {
+                (videoState.sourceType !== 'embed' || (videoState.sourceType === 'embed' && videoState.playing)) && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        padding: '40px 20px 20px',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                        opacity: showControls ? 1 : 0,
+                        transition: 'opacity 0.4s cubic-bezier(0,4, 0, 0.2, 1)',
+                        pointerEvents: showControls ? 'all' : 'none',
+                        zIndex: 20
+                    }}>
+                        {/* Only show progress bar for non-embeds */}
+                        {videoState.sourceType !== 'embed' && (
+                            <div style={{ position: 'relative', height: '6px', marginBottom: '20px', cursor: 'pointer' }}>
+                                <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}></div>
+                                <div style={{ position: 'absolute', width: `${buffered}%`, height: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}></div>
+                                <div style={{ position: 'absolute', width: `${progress}%`, height: '100%', background: 'var(--primary)', borderRadius: '3px', boxShadow: '0 0 10px var(--primary-glow)' }}></div>
                                 <input
                                     type="range"
                                     min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={volume}
-                                    onChange={(e) => setVolume(parseFloat(e.target.value))}
-                                    style={{ width: '80px', accentColor: 'var(--primary)' }}
+                                    max="100"
+                                    value={progress}
+                                    onChange={handleSeek}
+                                    style={{
+                                        position: 'absolute',
+                                        width: '100%',
+                                        height: '100%',
+                                        opacity: 0,
+                                        cursor: 'pointer'
+                                    }}
                                 />
                             </div>
+                        )}
 
-                            <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: '500', fontFamily: 'monospace' }}>
-                                {formatTime(videoRef.current?.currentTime || 0)} / {formatTime(videoRef.current?.duration || 0)}
-                            </span>
-                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                {/* Standard Controls (Non-Embed) */}
+                                {videoState.sourceType !== 'embed' ? (
+                                    <>
+                                        <button
+                                            onClick={() => togglePlay()}
+                                            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                        >
+                                            {videoState.playing ? <Pause size={24} fill="#fff" /> : <Play size={24} fill="#fff" />}
+                                        </button>
+                                        <button style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                                            <SkipForward size={20} fill="#fff" />
+                                        </button>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <button
+                                                onClick={() => setIsMuted(!isMuted)}
+                                                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                            >
+                                                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                            </button>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="1"
+                                                step="0.01"
+                                                value={volume}
+                                                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                                style={{ width: '80px', accentColor: 'var(--primary)' }}
+                                            />
+                                        </div>
+
+                                        <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: '500', fontFamily: 'monospace' }}>
+                                            {formatTime(videoRef.current?.currentTime || 0)} / {formatTime(videoRef.current?.duration || 0)}
+                                        </span>
+                                    </>
+                                ) : (
+                                    // Controls for Embeds (Stop Session)
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => togglePlay()} // Toggles playing to false -> shows start overlay
+                                            className="btn-secondary"
+                                            style={{
+                                                background: 'rgba(255, 68, 68, 0.15)',
+                                                color: '#ff4444',
+                                                border: '1px solid rgba(255, 68, 68, 0.3)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            <Pause size={18} fill="currentColor" />
+                                            Stop Session
+                                        </button>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            Playing shared content
+                                        </span>
+                                    </div>
+                                )}
+
+                            </div>
 
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            {videoState.url && !activeStream && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                {videoState.url && !activeStream && (
+                                    <button
+                                        onClick={handleClearVideo}
+                                        style={{
+                                            background: 'rgba(255, 68, 68, 0.1)',
+                                            border: '1px solid rgba(255, 68, 68, 0.2)',
+                                            color: '#ff4444',
+                                            cursor: 'pointer',
+                                            padding: '6px 12px',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            fontWeight: '600',
+                                            fontSize: '0.8rem'
+                                        }}
+                                        title="Change Video"
+                                    >
+                                        <FileVideo size={16} />
+                                        Change Video
+                                    </button>
+                                )}
                                 <button
-                                    onClick={handleClearVideo}
+                                    onClick={() => isSharing ? stopScreenShare() : startScreenShare()}
                                     style={{
-                                        background: 'rgba(255, 68, 68, 0.1)',
-                                        border: '1px solid rgba(255, 68, 68, 0.2)',
-                                        color: '#ff4444',
+                                        background: isSharing ? 'var(--primary)' : 'none',
+                                        border: 'none',
+                                        color: isSharing ? '#000' : '#fff',
                                         cursor: 'pointer',
-                                        padding: '6px 12px',
-                                        borderRadius: '6px',
+                                        padding: '6px',
+                                        borderRadius: '4px',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
-                                        fontWeight: '600',
-                                        fontSize: '0.8rem'
+                                        gap: '6px'
                                     }}
-                                    title="Change Video"
+                                    title={isSharing ? 'Stop Screen Share' : 'Start Screen Share'}
                                 >
-                                    <FileVideo size={16} />
-                                    Change Video
+                                    {isSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
                                 </button>
-                            )}
-                            <button
-                                onClick={() => isSharing ? stopScreenShare() : startScreenShare()}
-                                style={{
-                                    background: isSharing ? 'var(--primary)' : 'none',
-                                    border: 'none',
-                                    color: isSharing ? '#000' : '#fff',
-                                    cursor: 'pointer',
-                                    padding: '6px',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px'
-                                }}
-                                title={isSharing ? 'Stop Screen Share' : 'Start Screen Share'}
-                            >
-                                {isSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
-                            </button>
-                            <button
-                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                                style={{
-                                    background: isSettingsOpen ? 'rgba(0, 255, 136, 0.1)' : 'none',
-                                    border: 'none',
-                                    color: isSettingsOpen ? 'var(--primary)' : '#fff',
-                                    cursor: 'pointer',
-                                    padding: '6px',
-                                    borderRadius: '4px'
-                                }}
-                            >
-                                <Settings size={20} />
-                            </button>
+                                <button
+                                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                    style={{
+                                        background: isSettingsOpen ? 'rgba(0, 255, 136, 0.1)' : 'none',
+                                        border: 'none',
+                                        color: isSettingsOpen ? 'var(--primary)' : '#fff',
+                                        cursor: 'pointer',
+                                        padding: '6px',
+                                        borderRadius: '4px'
+                                    }}
+                                >
+                                    <Settings size={20} />
+                                </button>
 
-                            <button
-                                onClick={toggleFullScreen}
-                                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                            >
-                                <Maximize size={20} />
-                            </button>
+                                <button
+                                    onClick={toggleFullScreen}
+                                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                >
+                                    <Maximize size={20} />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Player Settings Panel */}
+                        <PlayerSettings
+                            isOpen={isSettingsOpen}
+                            onClose={() => setIsSettingsOpen(false)}
+                            currentQuality={currentQuality}
+                            availableQualities={availableQualities}
+                            onQualityChange={handleQualityChange}
+                            playbackSpeed={playbackSpeed}
+                            onSpeedChange={handleSpeedChange}
+                            servers={videoSources}
+                            activeServerIndex={activeServerIndex}
+                            onServerChange={switchServer}
+                        />
                     </div>
-
-                    {/* Player Settings Panel */}
-                    <PlayerSettings
-                        isOpen={isSettingsOpen}
-                        onClose={() => setIsSettingsOpen(false)}
-                        currentQuality={currentQuality}
-                        availableQualities={availableQualities}
-                        onQualityChange={handleQualityChange}
-                        playbackSpeed={playbackSpeed}
-                        onSpeedChange={handleSpeedChange}
-                        servers={videoSources}
-                        activeServerIndex={activeServerIndex}
-                        onServerChange={switchServer}
-                    />
-                </div>
-            )}
+                )
+            }
             {/* P2P File Transfer Overlay */}
-            {!fileTransfer.isHost && (
-                <>
-                    {/* Downloading Overlay */}
-                    {(fileTransfer.transferState.status === 'connecting' || fileTransfer.transferState.status === 'transferring') && (
-                        <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'rgba(0,0,0,0.8)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 20
-                        }}>
-                            <div className="loading-spinner" style={{ marginBottom: '20px' }}>
-                                <Loader size={48} className="animate-spin" color="var(--primary)" />
-                            </div>
-                            <h3 style={{ color: '#fff', marginBottom: '8px' }}>Downloading File...</h3>
+            {
+                !fileTransfer.isHost && (
+                    <>
+                        {/* Downloading Overlay */}
+                        {(fileTransfer.transferState.status === 'connecting' || fileTransfer.transferState.status === 'transferring') && (
                             <div style={{
-                                width: '300px',
-                                height: '6px',
-                                background: 'rgba(255,255,255,0.1)',
-                                borderRadius: '3px',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{
-                                    width: `${fileTransfer.transferState.progress}%`,
-                                    height: '100%',
-                                    background: 'var(--primary)',
-                                    transition: 'width 0.2s ease'
-                                }} />
-                            </div>
-                            <p style={{ color: 'var(--text-muted)', marginTop: '8px', fontSize: '0.9rem' }}>
-                                {fileTransfer.transferState.progress}% of {fileTransfer.transferState.fileSize ? (fileTransfer.transferState.fileSize / 1024 / 1024).toFixed(1) + ' MB' : 'Unknown size'}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Accept Transfer Overlay */}
-                    {fileTransfer.transferState.status === 'idle' && fileTransfer.transferState.fileName && (
-                        <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'rgba(0,0,0,0.85)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 20
-                        }}>
-                            <div style={{
-                                width: '80px',
-                                height: '80px',
-                                background: 'rgba(0, 255, 136, 0.1)',
-                                borderRadius: '50%',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                background: 'rgba(0,0,0,0.8)',
                                 display: 'flex',
+                                flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginBottom: '20px',
-                                border: '1px solid var(--primary)'
+                                zIndex: 20
                             }}>
-                                <Download size={40} color="var(--primary)" />
+                                <div className="loading-spinner" style={{ marginBottom: '20px' }}>
+                                    <Loader size={48} className="animate-spin" color="var(--primary)" />
+                                </div>
+                                <h3 style={{ color: '#fff', marginBottom: '8px' }}>Downloading File...</h3>
+                                <div style={{
+                                    width: '300px',
+                                    height: '6px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    borderRadius: '3px',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{
+                                        width: `${fileTransfer.transferState.progress}%`,
+                                        height: '100%',
+                                        background: 'var(--primary)',
+                                        transition: 'width 0.2s ease'
+                                    }} />
+                                </div>
+                                <p style={{ color: 'var(--text-muted)', marginTop: '8px', fontSize: '0.9rem' }}>
+                                    {fileTransfer.transferState.progress}% of {fileTransfer.transferState.fileSize ? (fileTransfer.transferState.fileSize / 1024 / 1024).toFixed(1) + ' MB' : 'Unknown size'}
+                                </p>
                             </div>
-                            <h2 style={{ color: '#fff', marginBottom: '8px' }}>P2P File Stream Available</h2>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
-                                The host is streaming <strong>{fileTransfer.transferState.fileName}</strong>
-                            </p>
-                            <button
-                                onClick={() => {
-                                    if (fileTransfer.transferState.hostId) {
-                                        fileTransfer.requestFile(fileTransfer.transferState.hostId);
-                                    }
-                                }}
-                                style={{
-                                    padding: '12px 24px',
-                                    background: 'var(--primary)',
-                                    color: '#000',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '1rem',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
+                        )}
+
+                        {/* Accept Transfer Overlay */}
+                        {fileTransfer.transferState.status === 'idle' && fileTransfer.transferState.fileName && (
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                background: 'rgba(0,0,0,0.85)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 20
+                            }}>
+                                <div style={{
+                                    width: '80px',
+                                    height: '80px',
+                                    background: 'rgba(0, 255, 136, 0.1)',
+                                    borderRadius: '50%',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px',
-                                    boxShadow: '0 0 20px var(--primary-glow)'
-                                }}
-                            >
-                                <Download size={18} />
-                                Download & Watch
-                            </button>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '16px', maxWidth: '400px', textAlign: 'center' }}>
-                                Note: This file will be downloaded to your device's memory for playback. Large files may take some time.
-                            </p>
-                        </div>
-                    )}
-                </>
-            )}
+                                    justifyContent: 'center',
+                                    marginBottom: '20px',
+                                    border: '1px solid var(--primary)'
+                                }}>
+                                    <Download size={40} color="var(--primary)" />
+                                </div>
+                                <h2 style={{ color: '#fff', marginBottom: '8px' }}>P2P File Stream Available</h2>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+                                    The host is streaming <strong>{fileTransfer.transferState.fileName}</strong>
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        if (fileTransfer.transferState.hostId) {
+                                            fileTransfer.requestFile(fileTransfer.transferState.hostId);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '12px 24px',
+                                        background: 'var(--primary)',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 0 20px var(--primary-glow)'
+                                    }}
+                                >
+                                    <Download size={18} />
+                                    Download & Watch
+                                </button>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '16px', maxWidth: '400px', textAlign: 'center' }}>
+                                    Note: This file will be downloaded to your device's memory for playback. Large files may take some time.
+                                </p>
+                            </div>
+                        )}
+                    </>
+                )
+            }
             {/* Notification Overlay */}
-            {videoState.sourceType !== 'embed' && (notification ||  /* Create a local state for notification if needed, but context handles it */ false) && (
-                <div style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: '50%',
-                    transform: 'translate(-50%, 0)',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    color: '#fff',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 10,
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    pointerEvents: 'none',
-                    animation: 'fadeInOut 3s ease-in-out',
-                    display: notification ? 'block' : 'none'
-                }}>
-                    {notification?.message}
-                </div>
-            )}
+            {
+                videoState.sourceType !== 'embed' && (notification ||  /* Create a local state for notification if needed, but context handles it */ false) && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        left: '50%',
+                        transform: 'translate(-50%, 0)',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        color: '#fff',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 10,
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        pointerEvents: 'none',
+                        animation: 'fadeInOut 3s ease-in-out',
+                        display: notification ? 'block' : 'none'
+                    }}>
+                        {notification?.message}
+                    </div>
+                )
+            }
 
-            {/* Embed Source Notification Overlay (Different positioning if needed, or same) */}
+            {/* Embed Source Notification Overlay */}
             {videoState.sourceType === 'embed' && notification && (
                 <div style={{
                     position: 'absolute',

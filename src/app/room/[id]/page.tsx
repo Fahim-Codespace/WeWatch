@@ -71,9 +71,11 @@ export default function RoomPage() {
 
     const handleJoinRoom = (e: React.FormEvent) => {
         e.preventDefault();
-        if (userName.trim() && params.id && socket) {
-            // Persist name for this room (existing logic)
-            localStorage.setItem(`wewatch_name_${params.id}`, userName.trim());
+        const roomId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+        if (userName.trim() && roomId && socket) {
+            // Persist name for this room
+            localStorage.setItem(`wewatch_name_${roomId}`, userName.trim());
 
             // Handle global remember name
             if (rememberName) {
@@ -82,7 +84,7 @@ export default function RoomPage() {
                 localStorage.removeItem('wewatch_global_username');
             }
 
-            joinRoom(params.id as string, userName.trim());
+            joinRoom(roomId, userName.trim());
             setIsJoined(true);
 
             // Trigger video initialization check
@@ -94,25 +96,40 @@ export default function RoomPage() {
     useEffect(() => {
         if (!params.id) return;
 
-        const savedName = localStorage.getItem(`wewatch_name_${params.id}`);
+        // Handle both string and array params
+        const roomId = Array.isArray(params.id) ? params.id[0] : params.id;
+        const key = `wewatch_name_${roomId}`;
+        const savedName = localStorage.getItem(key);
+
+        console.log('[Auth] Checking session for room:', roomId);
+        console.log('[Auth] Key:', key, 'Value:', savedName);
+
         if (!savedName) {
+            console.log('[Auth] No session found, showing join form');
             setIsCheckingAuth(false);
         } else {
-            console.log('Found saved session:', savedName);
+            console.log('[Auth] Found session, setting user:', savedName);
             setUserName(savedName);
         }
     }, [params.id]);
 
     // Attempt auto-rejoin when socket is ready
     useEffect(() => {
-        if (socket && userName && !isJoined && isCheckingAuth && params.id) {
-            console.log('Auto-rejoining room...');
-            joinRoom(params.id as string, userName);
+        if (!params.id || !userName || isJoined) return;
+
+        // If we are checking auth, we wait for socket
+        // If socket is ready, join
+
+        if (socket) {
+            const roomId = Array.isArray(params.id) ? params.id[0] : params.id;
+            console.log('[Auth] Socket ready, joining room:', roomId);
+
+            joinRoom(roomId, userName);
             setIsJoined(true);
-            setShouldInitVideo(true);
             setIsCheckingAuth(false);
+            setShouldInitVideo(true);
         }
-    }, [socket, userName, isJoined, isCheckingAuth, params.id, joinRoom]);
+    }, [socket, userName, isJoined, params.id, joinRoom]);
 
     const handleLeaveRoom = () => {
         if (params.id) {

@@ -162,7 +162,7 @@ io.on('connection', (socket) => {
             room.videoState.url = url;
             room.videoState.sourceType = sourceType;
             room.videoState.currentTime = 0;
-            room.videoState.playing = true;
+            room.videoState.playing = false; // Start paused for sync start
             socket.to(currentRoomId).emit('video-change', {
                 url,
                 sourceType,
