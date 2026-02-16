@@ -357,7 +357,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                 />
             ) : videoState.url ? (
                 videoState.sourceType === 'embed' ? (
-                    !videoState.playing ? (
+                    (roomId && !videoState.playing) ? (
                         // Start Session Overlay for Embeds
                         <div style={{
                             width: '100%',
@@ -435,21 +435,22 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                 )
             ) : (
                 // No Video Selected
-                <div style={{
+                <div className="no-video-container" style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     height: '100%',
                     gap: '20px',
-                    color: 'var(--text-muted)'
+                    color: 'var(--text-muted)',
+                    padding: '20px'
                 }}>
                     <Film size={64} style={{ opacity: 0.2 }} />
                     <div style={{ textAlign: 'center' }}>
-                        <h2 style={{ color: '#fff', marginBottom: '8px' }}>No video selected</h2>
-                        <p>Upload a local file or enter a URL to start watching together</p>
+                        <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.5rem' }}>No video selected</h2>
+                        <p style={{ fontSize: '0.9rem', maxWidth: '300px', margin: '0 auto' }}>Upload a local file or enter a URL to start watching together</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '16px' }}>
+                    <div className="action-buttons" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                         <label className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FileVideo size={18} />
                             Open File
@@ -550,7 +551,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
 
             {/* Video Overlay / Controls */}
             {
-                (videoState.sourceType !== 'embed' || (videoState.sourceType === 'embed' && videoState.playing)) && (
+                (videoState.sourceType !== 'embed' || (videoState.sourceType === 'embed' && videoState.playing && roomId)) && (
                     <div style={{
                         position: 'absolute',
                         bottom: 0,

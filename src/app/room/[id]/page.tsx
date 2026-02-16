@@ -10,7 +10,7 @@ import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
 import InviteModal from '@/components/InviteModal';
 import MediaDetailView from '@/components/MediaDetailView';
-import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search, ArrowLeft } from 'lucide-react';
+import { Share2, Users, Settings, LogOut, Info, UserCircle, Film, Search, ArrowLeft, Menu, X } from 'lucide-react';
 import { getStreamSources } from '@/lib/streamSources';
 import { getTrending, getTVShowDetails, getMovieDetails, getSeasonDetails, getImageUrl } from '@/lib/tmdb';
 import EpisodeSelector from '@/components/EpisodeSelector';
@@ -31,7 +31,8 @@ export default function RoomPage() {
         roomSettings,
         updateRoomSettings,
         changeMedia,
-        media
+        media,
+        leaveRoom
     } = useRoom();
     const [isJoined, setIsJoined] = useState(false);
     const [userName, setUserName] = useState('');
@@ -44,6 +45,7 @@ export default function RoomPage() {
     const [previewMedia, setPreviewMedia] = useState<{ media: any; type: 'movie' | 'tv' } | null>(null);
     const [shouldInitVideo, setShouldInitVideo] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
 
     // Media State
     const [mediaId, setMediaId] = useState<number | null>(null);
@@ -135,6 +137,7 @@ export default function RoomPage() {
         if (params.id) {
             localStorage.removeItem(`wewatch_name_${params.id}`);
         }
+        leaveRoom();
         router.push('/');
     };
 
@@ -483,26 +486,16 @@ export default function RoomPage() {
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#050505' }}>
             {/* Room Header */}
-            <header style={{
-                padding: '12px 24px',
-                background: 'rgba(10, 10, 10, 0.8)',
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid var(--glass-border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <header className="room-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                     {mediaId && (
                         <button
                             onClick={() => {
-                                // If playing, show details instead of leaving
                                 if (isTvShow && tvDetails) {
                                     setPreviewMedia({ media: tvDetails, type: 'tv' });
                                 } else if (!isTvShow && movieDetails) {
                                     setPreviewMedia({ media: movieDetails, type: 'movie' });
                                 } else {
-                                    // Fallback if no details loaded (shouldn't happen often)
                                     const type = isTvShow ? 'tv' : 'movie';
                                     router.push(`/media/${type}/${mediaId}`);
                                 }
@@ -510,11 +503,9 @@ export default function RoomPage() {
                             className="btn-back"
                             title="Back to details"
                         >
-                            <ArrowLeft size={20} />
+                            <ArrowLeft size={18} />
                         </button>
                     )}
-
-                    <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
 
                     <div
                         onClick={() => router.push('/')}
@@ -532,12 +523,13 @@ export default function RoomPage() {
                         }}>
                             <Film size={18} color="#000" fill="#000" />
                         </div>
-                        <span style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>
+                        <span className="brand-text" style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>
                             WE<span style={{ color: 'var(--primary)' }}>WATCH</span>
                         </span>
                     </div>
-                    <div style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+                    <div className="room-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="divider" style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></div>
                         <div className="room-id-badge">
                             <span style={{ color: 'var(--primary)' }}>ROOM:</span> {params.id}
                         </div>
@@ -568,6 +560,7 @@ export default function RoomPage() {
                     <button
                         onClick={() => setShowBrowseModal(true)}
                         className="btn-primary browse-btn"
+                        title="Browse Media"
                     >
                         <Film size={18} />
                         <span>Browse</span>
@@ -590,6 +583,7 @@ export default function RoomPage() {
                     <button
                         className="btn-secondary settings-btn"
                         onClick={() => setShowSettingsModal(true)}
+                        title="Room Settings"
                     >
                         <Settings size={18} />
                     </button>
@@ -597,6 +591,7 @@ export default function RoomPage() {
                     <button
                         onClick={handleLeaveRoom}
                         className="leave-btn"
+                        title="Leave Room"
                     >
                         <LogOut size={16} />
                         <span>Leave Room</span>
@@ -652,6 +647,7 @@ export default function RoomPage() {
                     justify-content: space-between;
                     align-items: center;
                     height: 64px;
+                    width: 100%;
                 }
 
                 .room-content {
@@ -674,6 +670,16 @@ export default function RoomPage() {
                     display: flex;
                     align-items: center;
                     gap: 12px;
+                }
+
+                .room-info {
+                    display: flex; 
+                    align-items: center; 
+                    gap: 10px;
+                }
+
+                .divider {
+                    height: 24px; width: 1px; background: var(--glass-border);
                 }
 
                 .btn-back {
@@ -702,12 +708,12 @@ export default function RoomPage() {
                 .room-id-badge {
                     padding: 4px 12px;
                     background: var(--secondary);
-                    borderRadius: 6px;
-                    fontSize: 0.8rem;
-                    fontWeight: 600;
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
                     border: 1px solid var(--glass-border);
                     display: flex;
-                    alignItems: center;
+                    align-items: center;
                     gap: 6px;
                     white-space: nowrap;
                 }
@@ -736,6 +742,7 @@ export default function RoomPage() {
                     padding: 8px 12px;
                     border-radius: 8px;
                     border: 1px solid var(--glass-border);
+                    white-space: nowrap;
                 }
 
                 .leave-btn {
@@ -761,36 +768,61 @@ export default function RoomPage() {
                 }
 
                 @media (max-width: 768px) {
-                    .room-id-badge { display: none; }
+                    .room-id-badge, .divider { display: none; }
+                    
                     .room-content {
                         flex-direction: column;
                     }
                     .video-area {
-                        padding: 12px;
+                        padding: 0;
                         flex: none;
-                        height: auto;
+                        width: 100%;
+                        height: auto; 
+                        aspect-ratio: 16/9;
                     }
+
                     .room-header {
                         padding: 10px 16px;
-                        height: auto;
-                        flex-wrap: wrap;
+                        height: 60px;
                         gap: 10px;
                     }
-                    .header-actions {
-                        width: 100%;
-                        justify-content: space-between;
-                        gap: 8px;
-                    }
-                    .browse-btn span, 
-                    .invite-btn span, 
-                    .leave-btn span {
+
+                    .brand-text {
                         display: none;
                     }
-                    .browse-btn, .invite-btn, .leave-btn {
-                        padding: 10px;
+
+                    /* Header Actions - Mobile */
+                    .header-actions {
+                        flex: 1;
+                        justify-content: flex-end;
+                        gap: 8px;
                     }
+
+                    .browse-btn span, 
+                    .invite-btn span, 
+                    .leave-btn span,
+                    .watching-badge span {
+                        display: none;
+                    }
+
+                    .browse-btn, .invite-btn, .leave-btn, .watching-badge {
+                        padding: 0;
+                        width: 36px;
+                        height: 36px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center; 
+                        border-radius: 8px;
+                    }
+                    
                     .watching-badge {
-                        padding: 10px;
+                        padding: 0 8px; 
+                        width: auto;
+                    }
+                    
+                    .watching-badge span {
+                         display: inline-block;
+                         font-size: 0.8rem;
                     }
                 }
             `}</style>
