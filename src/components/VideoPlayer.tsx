@@ -25,7 +25,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
-    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, fileTransfer } = useRoom();
+    const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, fileTransfer, notification } = useRoom();
     const { isSharing, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
     const [showControls, setShowControls] = useState(true);
     const [volume, setVolume] = useState(1);
@@ -750,6 +750,50 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                         </div>
                     )}
                 </>
+            )}
+            {/* Notification Overlay */}
+            {videoState.sourceType !== 'embed' && (notification ||  /* Create a local state for notification if needed, but context handles it */ false) && (
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translate(-50%, 0)',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    color: '#fff',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 10,
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    pointerEvents: 'none',
+                    animation: 'fadeInOut 3s ease-in-out',
+                    display: notification ? 'block' : 'none'
+                }}>
+                    {notification?.message}
+                </div>
+            )}
+
+            {/* Embed Source Notification Overlay (Different positioning if needed, or same) */}
+            {videoState.sourceType === 'embed' && notification && (
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translate(-50%, 0)',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    color: '#fff',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 100, // Higher z-index for iframes
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    pointerEvents: 'none',
+                    display: notification ? 'block' : 'none'
+                }}>
+                    {notification.message}
+                </div>
             )}
         </div>
     );

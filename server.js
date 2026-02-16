@@ -90,7 +90,10 @@ io.on('connection', (socket) => {
         // In real app, check if socket.id is host.
         if (room) {
             room.settings = { ...room.settings, ...settings };
-            io.to(currentRoomId).emit('room-settings-updated', room.settings);
+            socket.to(currentRoomId).emit('room-settings-updated', {
+                ...room.settings,
+                userName: currentUserName
+            });
         }
     });
 
@@ -100,36 +103,52 @@ io.on('connection', (socket) => {
         const room = rooms.get(currentRoomId);
         if (room) {
             room.media = media; // Update room media state
-            // Broadcast to EVERYONE including sender (to confirm sync)
-            io.to(currentRoomId).emit('media-changed', media);
+            // Broadcast to others
+            socket.to(currentRoomId).emit('media-changed', {
+                ...media,
+                userName: currentUserName
+            });
         }
     });
 
     // Video control events
-    socket.on('video-play', () => {
+    socket.on('video-play', (data) => {
         if (!currentRoomId) return;
         const room = rooms.get(currentRoomId);
         if (room) {
             room.videoState.playing = true;
-            socket.to(currentRoomId).emit('video-play');
+            // Broadcast to everyone else in the room
+            socket.to(currentRoomId).emit('video-play', {
+                ...data,
+                userName: currentUserName // Ensure server-side validation of sender name
+            });
         }
     });
 
-    socket.on('video-pause', () => {
+    socket.on('video-pause', (data) => {
         if (!currentRoomId) return;
         const room = rooms.get(currentRoomId);
         if (room) {
             room.videoState.playing = false;
-            socket.to(currentRoomId).emit('video-pause');
+            socket.to(currentRoomId).emit('video-pause', {
+                ...data,
+                userName: currentUserName
+            });
         }
     });
 
-    socket.on('video-seek', (time) => {
+    socket.on('video-seek', (data) => {
         if (!currentRoomId) return;
         const room = rooms.get(currentRoomId);
         if (room) {
+            // Check if data is object or number (for backward compatibility, though we expect object now)
+            const time = typeof data === 'object' ? data.time : data;
+
             room.videoState.currentTime = time;
-            socket.to(currentRoomId).emit('video-seek', time);
+            socket.to(currentRoomId).emit('video-seek', {
+                time,
+                userName: currentUserName
+            });
         }
     });
 
@@ -141,7 +160,11 @@ io.on('connection', (socket) => {
             room.videoState.sourceType = sourceType;
             room.videoState.currentTime = 0;
             room.videoState.playing = false;
-            socket.to(currentRoomId).emit('video-change', { url, sourceType });
+            socket.to(currentRoomId).emit('video-change', {
+                url,
+                sourceType,
+                userName: currentUserName
+            });
         }
     });
 

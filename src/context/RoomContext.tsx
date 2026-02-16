@@ -59,6 +59,8 @@ interface RoomContextType {
         downloadUrl: string | null;
         isHost: boolean;
     };
+    notification: { message: string; id: string } | null;
+    setNotification: (notification: { message: string; id: string } | null) => void;
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
@@ -79,6 +81,15 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [roomSettings, setRoomSettings] = useState<RoomSettings>({
         persistent: false
     });
+
+    const [notification, setNotification] = useState<{ message: string; id: string } | null>(null);
+
+    // Helper to show notification
+    const showNotification = useCallback((message: string) => {
+        setNotification({ message, id: uuidv4() });
+        // Clear after 3 seconds
+        setTimeout(() => setNotification(null), 3000);
+    }, []);
 
     const isLocalAction = useRef(false);
 
@@ -110,41 +121,59 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         newSocket.on('user-joined', (participant: Participant) => {
             setParticipants(prev => [...prev, participant]);
+            showNotification(`${participant.name} joined the room`);
         });
 
         newSocket.on('user-left', ({ id, name }) => {
             setParticipants(prev => prev.filter(p => p.id !== id));
+            showNotification(`${name} left the room`);
         });
 
-        newSocket.on('room-settings-updated', (settings: RoomSettings) => {
+        newSocket.on('room-settings-updated', (settings: RoomSettings & { userName?: string }) => {
             setRoomSettings(settings);
+            if (settings.userName) {
+                showNotification(`${settings.userName} updated room settings`);
+            } else {
+                showNotification('Room settings updated');
+            }
         });
 
-        newSocket.on('media-changed', (newMedia: Media) => {
+        newSocket.on('media-changed', (newMedia: Media & { userName?: string }) => {
             setMedia(newMedia);
+            if (newMedia.userName) {
+                showNotification(`${newMedia.userName} changed the media to ${newMedia.title}`);
+            }
         });
 
-        newSocket.on('video-play', () => {
+        newSocket.on('video-play', (data?: { userName?: string }) => {
             if (!isLocalAction.current) {
                 setVideoState(prev => ({ ...prev, playing: true }));
+                if (data?.userName) showNotification(`${data.userName} played the video`);
             }
         });
 
-        newSocket.on('video-pause', () => {
+        newSocket.on('video-pause', (data?: { userName?: string }) => {
             if (!isLocalAction.current) {
                 setVideoState(prev => ({ ...prev, playing: false }));
+                if (data?.userName) showNotification(`${data.userName} paused the video`);
             }
         });
 
-        newSocket.on('video-seek', (time: number) => {
+        newSocket.on('video-seek', (data: { time: number; userName?: string } | number) => {
             if (!isLocalAction.current) {
+                const time = typeof data === 'object' ? data.time : data;
                 setVideoState(prev => ({ ...prev, currentTime: time }));
+
+                if (typeof data === 'object' && data.userName) {
+                    showNotification(`${data.userName} seeked to ${formatTime(time)}`);
+                }
             }
         });
 
-        newSocket.on('video-change', ({ url, sourceType }) => {
+        newSocket.on('video-change', ({ url, sourceType, userName }) => {
             if (!isLocalAction.current) {
                 setVideoState(prev => ({ ...prev, url, sourceType, currentTime: 0, playing: false }));
+                if (userName) showNotification(`${userName} changed the video`);
             }
         });
 
@@ -159,7 +188,14 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             newSocket.close();
         };
-    }, []);
+    }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Helper format time for notifications
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
 
     const joinRoom = useCallback((id: string, name: string) => {
         // Clear previous room state
@@ -173,6 +209,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setMedia(null);
         setRoomSettings({ persistent: false });
+        setNotification(null);
 
         setRoomId(id);
         setCurrentUserName(name);
@@ -213,7 +250,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const seekVideo = useCallback((time: number) => {
         isLocalAction.current = true;
         setVideoState(prev => ({ ...prev, currentTime: time }));
-        socket?.emit('video-seek', time);
+        socket?.emit('video-seek', { time });
         setTimeout(() => { isLocalAction.current = false; }, 100);
     }, [socket]);
 
@@ -249,7 +286,9 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 joinRoom,
                 updateRoomSettings,
                 currentUserName,
-                fileTransfer
+                fileTransfer,
+                notification,
+                setNotification
             }}
         >
             {children}
