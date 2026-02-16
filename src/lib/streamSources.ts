@@ -17,62 +17,62 @@ export function getStreamSources(
         sources.push(
             {
                 label: 'Vidsrc.cc',
-                url: `https://vidsrc.cc/v2/embed/movie/${tmdbId}`,
+                url: `https://vidsrc.cc/v2/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.to',
-                url: `https://vidsrc.to/embed/movie/${tmdbId}`,
+                url: `https://vidsrc.to/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Autoembed',
-                url: `https://player.autoembed.cc/embed/movie/${tmdbId}`,
+                url: `https://player.autoembed.cc/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.xyz',
-                url: `https://vidsrc.xyz/embed/movie/${tmdbId}`,
+                url: `https://vidsrc.xyz/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.me',
-                url: `https://vidsrc.me/embed/movie/${tmdbId}`,
+                url: `https://vidsrc.me/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Embedsu',
-                url: `https://embed.su/embed/movie/${tmdbId}`,
+                url: `https://embed.su/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Moviesapi',
-                url: `https://moviesapi.club/movie/${tmdbId}`,
+                url: `https://moviesapi.club/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: '2Embed',
-                url: `https://www.2embed.cc/embed/${tmdbId}`,
+                url: `https://www.2embed.cc/embed/${tmdbId}&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'SuperEmbed',
-                url: `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`,
+                url: `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'NontonGo',
-                url: `https://www.NontonGo.win/embed/movie/${tmdbId}`,
+                url: `https://www.NontonGo.win/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Smashystream',
-                url: `https://player.smashy.stream/movie/${tmdbId}`,
+                url: `https://player.smashy.stream/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'VidSrc Pro',
-                url: `https://vidsrc.pro/embed/movie/${tmdbId}`,
+                url: `https://vidsrc.pro/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             }
         );
@@ -81,62 +81,62 @@ export function getStreamSources(
         sources.push(
             {
                 label: 'Vidsrc.cc',
-                url: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.to',
-                url: `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Autoembed',
-                url: `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.xyz',
-                url: `https://vidsrc.xyz/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://vidsrc.xyz/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Vidsrc.me',
-                url: `https://vidsrc.me/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://vidsrc.me/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Embedsu',
-                url: `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Moviesapi',
-                url: `https://moviesapi.club/tv/${tmdbId}-${season}-${episode}`,
+                url: `https://moviesapi.club/tv/${tmdbId}-${season}-${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: '2Embed',
-                url: `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${episode}`,
+                url: `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${episode}&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'SuperEmbed',
-                url: `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`,
+                url: `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'NontonGo',
-                url: `https://www.NontonGo.win/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://www.NontonGo.win/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'Smashystream',
-                url: `https://player.smashy.stream/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://player.smashy.stream/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
                 label: 'VidSrc Pro',
-                url: `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}`,
+                url: `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             }
         );

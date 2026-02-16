@@ -56,7 +56,9 @@ export default function RoomPage() {
     const [movieDetails, setMovieDetails] = useState<MediaDetails | null>(null);
 
     const [rememberName, setRememberName] = useState(false);
-    const [isSandboxEnabled, setIsSandboxEnabled] = useState(true);
+
+
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     // Load saved global name on mount
     useEffect(() => {
@@ -88,19 +90,29 @@ export default function RoomPage() {
         }
     };
 
-    // Auto-rejoin on refresh
+    // Check for existing session on mount
     useEffect(() => {
-        if (!params.id || isJoined || !socket) return;
+        if (!params.id) return;
 
         const savedName = localStorage.getItem(`wewatch_name_${params.id}`);
-        if (savedName) {
-            console.log('Auto-rejoining with saved name:', savedName);
+        if (!savedName) {
+            setIsCheckingAuth(false);
+        } else {
+            console.log('Found saved session:', savedName);
             setUserName(savedName);
-            joinRoom(params.id as string, savedName);
+        }
+    }, [params.id]);
+
+    // Attempt auto-rejoin when socket is ready
+    useEffect(() => {
+        if (socket && userName && !isJoined && isCheckingAuth && params.id) {
+            console.log('Auto-rejoining room...');
+            joinRoom(params.id as string, userName);
             setIsJoined(true);
             setShouldInitVideo(true);
+            setIsCheckingAuth(false);
         }
-    }, [params.id, joinRoom, isJoined, socket]);
+    }, [socket, userName, isJoined, isCheckingAuth, params.id, joinRoom]);
 
     const handleLeaveRoom = () => {
         if (params.id) {
@@ -253,6 +265,25 @@ export default function RoomPage() {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
     };
+
+    // Show loading state while checking for session
+    if (isCheckingAuth) {
+        return (
+            <div style={{
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#050505',
+                color: 'var(--primary)'
+            }}>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-muted-foreground animate-pulse">Reconnecting to room...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Show name modal if not joined
     if (!isJoined) {
@@ -561,7 +592,7 @@ export default function RoomPage() {
                 {/* Playback Area */}
                 <div className="video-area">
                     <VideoPlayer
-                        isSandboxEnabled={isSandboxEnabled}
+                        isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
                         media={mediaId ? {
                             id: mediaId,
                             type: isTvShow ? 'tv' : 'movie',
@@ -588,8 +619,9 @@ export default function RoomPage() {
                     sources={isTvShow && mediaId ? getStreamSources('tv', mediaId, currentSeason, currentEpisode) : (mediaId ? getStreamSources('movie', mediaId) : [])}
                     onServerSelect={handleServerSelect}
                     activeServerUrl={videoState.url}
-                    isSandboxEnabled={isSandboxEnabled}
-                    onToggleSandbox={setIsSandboxEnabled}
+
+                    isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
+                    onToggleSandbox={(enabled) => updateRoomSettings({ isSandboxEnabled: enabled })}
                 />
             </div>
 

@@ -54,7 +54,10 @@ io.on('connection', (socket) => {
                 },
                 media: null, // Track current media { type, id, title, poster }
                 settings: {
-                    persistent: false
+                    settings: {
+                        persistent: false,
+                        isSandboxEnabled: true
+                    }
                 }
             });
         }
@@ -159,7 +162,7 @@ io.on('connection', (socket) => {
             room.videoState.url = url;
             room.videoState.sourceType = sourceType;
             room.videoState.currentTime = 0;
-            room.videoState.playing = false;
+            room.videoState.playing = true;
             socket.to(currentRoomId).emit('video-change', {
                 url,
                 sourceType,

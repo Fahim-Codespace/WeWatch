@@ -21,6 +21,7 @@ interface Participant {
 
 interface RoomSettings {
     persistent: boolean;
+    isSandboxEnabled?: boolean;
 }
 
 interface Media {
@@ -79,7 +80,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     const [media, setMedia] = useState<Media | null>(null);
     const [roomSettings, setRoomSettings] = useState<RoomSettings>({
-        persistent: false
+        persistent: false,
+        isSandboxEnabled: true
     });
 
     const [notification, setNotification] = useState<{ message: string; id: string } | null>(null);
