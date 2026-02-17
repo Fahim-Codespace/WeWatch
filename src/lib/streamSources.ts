@@ -16,6 +16,11 @@ export function getStreamSources(
         // Movie sources - 12 servers for maximum reliability
         sources.push(
             {
+                label: 'Vidsrc.vip',
+                url: `https://vidsrc.vip/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
+                health: 'unknown'
+            },
+            {
                 label: 'VidLink',
                 url: `https://vidlink.pro/movie/${tmdbId}?autoplay=true`,
                 health: 'unknown'
@@ -23,11 +28,6 @@ export function getStreamSources(
             {
                 label: 'Vidsrc.cc',
                 url: `https://vidsrc.cc/v2/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
-                health: 'unknown'
-            },
-            {
-                label: 'Vidsrc.vip',
-                url: `https://vidsrc.vip/embed/movie/${tmdbId}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
@@ -90,6 +90,11 @@ export function getStreamSources(
         // TV show sources - 12 servers for maximum reliability
         sources.push(
             {
+                label: 'Vidsrc.vip',
+                url: `https://vidsrc.vip/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
+                health: 'unknown'
+            },
+            {
                 label: 'VidLink',
                 url: `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?autoplay=true`,
                 health: 'unknown'
@@ -97,11 +102,6 @@ export function getStreamSources(
             {
                 label: 'Vidsrc.cc',
                 url: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
-                health: 'unknown'
-            },
-            {
-                label: 'Vidsrc.vip',
-                url: `https://vidsrc.vip/embed/tv/${tmdbId}/${season}/${episode}?auto_play=1&autoplay=1`,
                 health: 'unknown'
             },
             {
