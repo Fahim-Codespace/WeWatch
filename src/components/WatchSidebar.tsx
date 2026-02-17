@@ -279,6 +279,23 @@ export default function WatchSidebar({
                         height: 100%;
                         flex: 1;
                     }
+
+                    /* Mobile Landscape Mode */
+                    @media (orientation: landscape) and (max-height: 500px) {
+                        .watch-sidebar {
+                            position: static;
+                            width: 50% !important;
+                            min-width: 50% !important;
+                            border-left: 1px solid var(--glass-border);
+                            border-top: none;
+                            padding-top: 50px; /* Reduced padding */
+                        }
+                        
+                        .watch-sidebar.closed {
+                            width: 0 !important;
+                            min-width: 0 !important;
+                        }
+                    }
                 }
             `}</style>
         </div >

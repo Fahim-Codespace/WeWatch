@@ -781,6 +781,19 @@ export default function RoomPage() {
                         aspect-ratio: 16/9;
                     }
 
+                    /* Mobile Landscape Mode */
+                    @media (orientation: landscape) and (max-height: 500px) {
+                        .room-content {
+                            flex-direction: row;
+                        }
+                        .video-area {
+                            width: 50%;
+                            height: 100%;
+                            padding: 0;
+                            aspect-ratio: auto;
+                        }
+                    }
+
                     .room-header {
                         padding: 10px 16px;
                         height: 60px;
