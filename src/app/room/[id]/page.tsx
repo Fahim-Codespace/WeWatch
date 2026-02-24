@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRoom } from '@/context/RoomContext';
 import VideoPlayer from '@/components/VideoPlayer';
+import VBrowserPlayer from '@/components/VBrowserPlayer';
 import ChatSystem from '@/components/ChatSystem';
 import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
@@ -32,6 +33,8 @@ export default function RoomPage() {
         updateRoomSettings,
         changeMedia,
         media,
+        vBrowserActive,
+        toggleVBrowser,
         leaveRoom
     } = useRoom();
     const [isJoined, setIsJoined] = useState(false);
@@ -603,19 +606,21 @@ export default function RoomPage() {
             <div className="room-content">
                 {/* Playback Area */}
                 <div className="video-area">
-                    <VideoPlayer
-                        isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
-                        media={mediaId ? {
-                            id: mediaId,
-                            type: isTvShow ? 'tv' : 'movie',
-                            title: mediaTitle || 'Unknown',
-                            poster: isTvShow ? (tvDetails?.poster_path || null) : (movieDetails?.poster_path || null),
-                            season: isTvShow ? currentSeason : undefined,
-                            episode: isTvShow ? currentEpisode : undefined
-                        } : undefined}
-                    />
-
-
+                    {vBrowserActive ? (
+                        <VBrowserPlayer roomId={params.id as string} url={videoState.url} />
+                    ) : (
+                        <VideoPlayer
+                            isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
+                            media={mediaId ? {
+                                id: mediaId,
+                                type: isTvShow ? 'tv' : 'movie',
+                                title: mediaTitle || 'Unknown',
+                                poster: isTvShow ? (tvDetails?.poster_path || null) : (movieDetails?.poster_path || null),
+                                season: isTvShow ? currentSeason : undefined,
+                                episode: isTvShow ? currentEpisode : undefined
+                            } : undefined}
+                        />
+                    )}
                 </div>
 
                 {/* Sidebar */}
@@ -895,6 +900,11 @@ export default function RoomPage() {
                             const sources = getStreamSources(type, media.id);
                             if (sources.length > 0) {
                                 setVideoUrl(sources[0].url, 'embed');
+
+                                // Auto-start Virtual Browser if in a room
+                                if (!vBrowserActive) {
+                                    toggleVBrowser(true);
+                                }
                             }
 
                             // 3. Update Local URL (History only, no navigation away)
