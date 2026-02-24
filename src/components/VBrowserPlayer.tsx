@@ -16,36 +16,44 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     url,
     serverUrl = 'https://alex3171-my-wewatch-browser.hf.space',
     password = process.env.NEXT_PUBLIC_NEKO_PASSWORD || 'watch123',
-    userName = 'Guest'
+    userName
 }) => {
-    // Note: Temporarily hardcoded because NEXT_PUBLIC_NEKO_URL was not being picked up.
-    // Ensure you restart your dev server after updating .env.local!
-    console.log("VBrowserPlayer - Neko Server URL (Forced):", serverUrl);
+    // Force a valid name (destructuring default value doesn't catch null)
+    const displayUserName = userName || 'Guest';
+
+    console.log("VBrowserPlayer - roomId:", roomId);
+    console.log("VBrowserPlayer - userName (raw):", userName);
+    console.log("VBrowserPlayer - userName (display):", displayUserName);
+    console.log("VBrowserPlayer - url:", url);
+    console.log("VBrowserPlayer - serverUrl:", serverUrl);
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
 
     // Neko supports automatic login via 'pwd' and 'name' query parameters
-    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${roomId}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}${userName ? `&name=${encodeURIComponent(userName)}` : ''}`;
+    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${encodeURIComponent(roomId || 'default')}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}&name=${encodeURIComponent(displayUserName)}`;
+
+    console.log("VBrowserPlayer - Final iFrame URL:", nekoEmbedUrl);
+
+    useEffect(() => {
+        // Fallback: If iframe doesn't call onLoad within 10 seconds, hide the loader anyway
+        const fallbackTimer = setTimeout(() => {
+            if (isLoading) {
+                console.log("VBrowserPlayer - Loading timeout triggered. Hiding loader.");
+                setIsLoading(false);
+            }
+        }, 10000);
+
+        return () => clearTimeout(fallbackTimer);
+    }, [isLoading]);
 
     useEffect(() => {
         if (url && url !== currentUrl) {
-            setIsLoading(true);
             setCurrentUrl(url);
-            // Simulate Neko navigation delay
-            const timer = setTimeout(() => setIsLoading(false), 2000);
-            return () => clearTimeout(timer);
+            // We don't necessarily want to show the full overlay for every internal nav
         }
     }, [url, currentUrl]);
-
-    useEffect(() => {
-        // Initial loading state
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 1500);
-        return () => clearTimeout(timer);
-    }, []);
 
     const handleRetry = () => {
         setIsLoading(true);
