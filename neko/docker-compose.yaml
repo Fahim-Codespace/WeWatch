@@ -1,0 +1,14 @@
+version: "3.4"
+services:
+  neko:
+    image: "m1k1o/neko:firefox"
+    restart: "always"
+    ports:
+      - "8080:8080"
+      - "52000-52100:52000-52100/udp"
+    environment:
+      NEKO_PASSWORD: "neko"
+      NEKO_PASSWORD_ADMIN: "admin"
+      NEKO_BIND: ":8080"
+      NEKO_UDP_PORT_MIN: 52000
+      NEKO_UDP_PORT_MAX: 52100
