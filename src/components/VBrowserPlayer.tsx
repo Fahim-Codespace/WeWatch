@@ -12,8 +12,12 @@ interface VBrowserPlayerProps {
 const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     roomId,
     url,
-    serverUrl = process.env.NEXT_PUBLIC_NEKO_URL || 'https://neko.example.com'
+    serverUrl = 'https://alex3171-my-wewatch-browser.hf.space'
 }) => {
+    // Note: Temporarily hardcoded because NEXT_PUBLIC_NEKO_URL was not being picked up.
+    // Ensure you restart your dev server after updating .env.local!
+    console.log("VBrowserPlayer - Neko Server URL (Forced):", serverUrl);
+
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
