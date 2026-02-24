@@ -8,5 +8,6 @@ RUN chmod -R 777 /home/neko
 EXPOSE 7860
 
 ENV NEKO_BIND=":7860"
-ENV NEKO_UDP_PORT_MIN=52000
-ENV NEKO_UDP_PORT_MAX=52100
+# Enable TCP Mux to allow WebRTC over the same TCP port (avoids UDP issues)
+ENV NEKO_TCPMUX=1
+ENV NEKO_ICELITE=1

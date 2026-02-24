@@ -31,8 +31,8 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
 
-    // Neko supports automatic login via 'pwd' and 'name' query parameters
-    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${encodeURIComponent(roomId || 'default')}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}&name=${encodeURIComponent(displayUserName)}`;
+    // Neko supports automatic login via 'usr', 'pwd' and 'name' query parameters
+    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${encodeURIComponent(roomId || 'default')}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}&usr=${encodeURIComponent(displayUserName)}&name=${encodeURIComponent(displayUserName)}`;
 
     console.log("VBrowserPlayer - Final iFrame URL:", nekoEmbedUrl);
 
