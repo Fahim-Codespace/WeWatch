@@ -607,7 +607,11 @@ export default function RoomPage() {
                 {/* Playback Area */}
                 <div className="video-area">
                     {vBrowserActive ? (
-                        <VBrowserPlayer roomId={params.id as string} url={videoState.url} />
+                        <VBrowserPlayer
+                            roomId={params.id as string}
+                            url={videoState.url}
+                            userName={currentUserName}
+                        />
                     ) : (
                         <VideoPlayer
                             isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}

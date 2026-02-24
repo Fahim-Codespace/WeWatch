@@ -7,12 +7,16 @@ interface VBrowserPlayerProps {
     roomId: string;
     url?: string;
     serverUrl?: string; // Optional: URL of the Neko server
+    password?: string;
+    userName?: string;
 }
 
 const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     roomId,
     url,
-    serverUrl = 'https://alex3171-my-wewatch-browser.hf.space'
+    serverUrl = 'https://alex3171-my-wewatch-browser.hf.space',
+    password = process.env.NEXT_PUBLIC_NEKO_PASSWORD || 'watch123',
+    userName = 'Guest'
 }) => {
     // Note: Temporarily hardcoded because NEXT_PUBLIC_NEKO_URL was not being picked up.
     // Ensure you restart your dev server after updating .env.local!
@@ -22,10 +26,8 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
 
-    // In a real implementation, we would use the Neko room ID to connect to the Neko server.
-    // Neko supports embedding via iframe if configured correctly.
-    // Transitioning URLs in Neko often requires an API call, but we can reflect it in the UI/iframe URL for now.
-    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${roomId}${url ? `&url=${encodeURIComponent(url)}` : ''}`;
+    // Neko supports automatic login via 'pwd' and 'name' query parameters
+    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${roomId}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}${userName ? `&name=${encodeURIComponent(userName)}` : ''}`;
 
     useEffect(() => {
         if (url && url !== currentUrl) {
