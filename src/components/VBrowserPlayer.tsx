@@ -9,7 +9,11 @@ interface VBrowserPlayerProps {
     serverUrl?: string; // Optional: URL of the Neko server
 }
 
-const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({ roomId, url, serverUrl = 'https://neko.example.com' }) => {
+const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
+    roomId,
+    url,
+    serverUrl = process.env.NEXT_PUBLIC_NEKO_URL || 'https://neko.example.com'
+}) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
