@@ -27,49 +27,30 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     console.log("VBrowserPlayer - url:", url);
     console.log("VBrowserPlayer - serverUrl:", serverUrl);
 
-    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
 
     // Neko supports automatic login via 'usr', 'pwd' and 'name' query parameters
-    const nekoEmbedUrl = `${serverUrl}/?embed=true&room=${encodeURIComponent(roomId || 'default')}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}&usr=${encodeURIComponent(displayUserName)}&name=${encodeURIComponent(displayUserName)}`;
+    // We use 'cast=1' to remove all Neko UI elements (sidebar, menus) for a seamless experience
+    const nekoEmbedUrl = `${serverUrl}/?cast=1&room=${encodeURIComponent(roomId || 'default')}${url ? `&url=${encodeURIComponent(url)}` : ''}${password ? `&pwd=${encodeURIComponent(password)}` : ''}&usr=${encodeURIComponent(displayUserName)}&name=${encodeURIComponent(displayUserName)}`;
 
     console.log("VBrowserPlayer - Final iFrame URL:", nekoEmbedUrl);
 
     useEffect(() => {
-        // Fallback: If iframe doesn't call onLoad within 10 seconds, hide the loader anyway
-        const fallbackTimer = setTimeout(() => {
-            if (isLoading) {
-                console.log("VBrowserPlayer - Loading timeout triggered. Hiding loader.");
-                setIsLoading(false);
-            }
-        }, 10000);
-
-        return () => clearTimeout(fallbackTimer);
-    }, [isLoading]);
-
-    useEffect(() => {
         if (url && url !== currentUrl) {
             setCurrentUrl(url);
-            // We don't necessarily want to show the full overlay for every internal nav
         }
     }, [url, currentUrl]);
 
     const handleRetry = () => {
-        setIsLoading(true);
         setError(null);
-        setTimeout(() => setIsLoading(false), 1500);
+        // Force iframe reload
+        const iframe = document.querySelector('.v-browser-iframe') as HTMLIFrameElement;
+        if (iframe) iframe.src = nekoEmbedUrl;
     };
 
     return (
         <div className="v-browser-container">
-            {isLoading && (
-                <div className="v-browser-overlay">
-                    <div className="spinner"></div>
-                    <p>Connecting to Cloud Browser...</p>
-                </div>
-            )}
-
             {error ? (
                 <div className="v-browser-overlay error">
                     <AlertCircle size={48} color="#ff4d4d" />
@@ -84,8 +65,7 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
                 <iframe
                     src={nekoEmbedUrl}
                     className="v-browser-iframe"
-                    allow="autoplay; fullscreen; microphone; camera; display-capture; clipboard-read; clipboard-write"
-                    onLoad={() => setIsLoading(false)}
+                    allow="autoplay; fullscreen; microphone; camera; display-capture; clipboard-read; clipboard-write; forms"
                     onError={() => setError("Could not connect to Neko server. Please check the server status.")}
                 />
             )}
