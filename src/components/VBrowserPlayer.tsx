@@ -14,7 +14,7 @@ interface VBrowserPlayerProps {
 const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     roomId,
     url,
-    serverUrl = 'https://alex3171-my-wewatch-browser.hf.space',
+    serverUrl = 'https://web-production-05d59.up.railway.app',
     password = process.env.NEXT_PUBLIC_NEKO_PASSWORD || 'watch123',
     userName
 }) => {
