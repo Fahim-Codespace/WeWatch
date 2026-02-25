@@ -79,7 +79,7 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
                 <iframe
                     src={nekoEmbedUrl}
                     className="v-browser-iframe"
-                    allow="autoplay; fullscreen; microphone; camera; display-capture; clipboard-read; clipboard-write; forms"
+                    allow="autoplay; fullscreen; microphone; camera; display-capture; clipboard-read; clipboard-write;"
                     onError={() => setError("Could not connect to Neko server. Please check the server status.")}
                 />
             )}
