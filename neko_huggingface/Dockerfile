@@ -1,17 +1,13 @@
-FROM m1k1o/neko:firefox
-
-# We go back to basics to ensure permissions are correct
+# We MUST run as root to allow supervisord to drop privileges to 'neko'
 USER root
-RUN chown -R neko:neko /home/neko
-USER neko
 
-# --- RAILWAY PORT BINDING ---
-# Railway provides the PORT environment variable. 
-# We use a shell to ensure $PORT is evaluated correctly at runtime.
-ENV NEKO_SERVER_BIND=0.0.0.0:8080
+# Ensure the neko user has ownership of its home (critical for X-server)
+RUN chown -R neko:neko /home/neko && \
+    mkdir -p /tmp/.X11-unix && \
+    chmod 1777 /tmp/.X11-unix && \
+    chown root:root /tmp/.X11-unix
 
 # --- FIREFOX CLOUD FIXES ---
-# Disable Firefox Sandbox for cloud environments (fixes EACCES crash)
 ENV MOZ_DISABLE_CONTENT_SANDBOX=1
 ENV MOZ_NODEJS_SANDBOX=0
 ENV MOZ_DISABLE_GMP_SANDBOX=1
@@ -31,5 +27,5 @@ ENV NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=admin123
 # Expose Railway's default-ish port
 EXPOSE 8080
 
-# Override the command to bind to Railway's dynamic PORT
-CMD ["sh", "-c", "export NEKO_SERVER_BIND=0.0.0.0:$PORT && /usr/bin/supervisord -c /etc/neko/supervisord.conf"]
+# Override the command to debug user and bind to Railway's dynamic PORT
+CMD ["sh", "-c", "echo 'Running as user:' $(whoami) && export NEKO_SERVER_BIND=0.0.0.0:$PORT && /usr/bin/supervisord -c /etc/neko/supervisord.conf"]
