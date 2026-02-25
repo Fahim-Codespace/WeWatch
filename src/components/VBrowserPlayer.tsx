@@ -30,18 +30,13 @@ const VBrowserPlayer: React.FC<VBrowserPlayerProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [currentUrl, setCurrentUrl] = useState(url);
 
-    // Neko version differences can be tricky; we provide all possible variations for auto-login
+    // Neko V3 standard parameters for auto-login are 'usr' and 'pwd'
     // We use 'cast=1' to remove all Neko UI elements (sidebar, menus) for a seamless experience
     const nekoParams = new URLSearchParams({
         cast: '1',
         room: roomId || 'default',
-        username: displayUserName,
-        user: displayUserName,
         usr: displayUserName,
-        name: displayUserName,
-        password: password || 'watch123',
-        pwd: password || 'watch123',
-        pass: password || 'watch123'
+        pwd: password || 'watch123'
     });
 
     if (url) nekoParams.append('url', url);
