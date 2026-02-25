@@ -7,14 +7,22 @@ RUN chmod -R 777 /home/neko
 # Hugging Face usually provides port 7860
 EXPOSE 7860
 
-ENV NEKO_BIND=":7860"
-# Enable TCP Mux to allow WebRTC over the same TCP port
-ENV NEKO_TCPMUX=1
-# Tell Neko it's behind a proxy
-ENV NEKO_PROXY=1
-# Fetch the public IP
-ENV NEKO_IPFETCH=https://checkip.amazonaws.com
-# Use VP8 which handles network jitter/packet loss better on TCP
-ENV NEKO_VIDEO_CODEC=vp8
-# Open Relay Project (TURN) credentials for fallback relaying
-ENV NEKO_ICESERVERS='[{"urls":["stun:openrelay.metered.ca:80"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443?transport=tcp"],"username":"openrelay","credential":"openrelay"}]'
+# Railway provides the PORT environment variable automatically
+ENV NEKO_SERVER_BIND=":7860"
+
+# --- NEKO V3 CONFIGURATION ---
+# Enable TCP Mux (WebRTC over TCP)
+ENV NEKO_WEBRTC_TCPMUX=1
+# Server is behind a proxy (Railway Ingress)
+ENV NEKO_SERVER_PROXY=1
+# Public IP retrieval for WebRTC
+ENV NEKO_WEBRTC_IP_RETRIEVAL_URL=https://checkip.amazonaws.com
+# Video Codec
+ENV NEKO_CAPTURE_VIDEO_CODEC=vp8
+# TURN/STUN Servers (Frontend)
+ENV NEKO_WEBRTC_ICESERVERS_FRONTEND='[{"urls":["stun:openrelay.metered.ca:80"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443?transport=tcp"],"username":"openrelay","credential":"openrelay"}]'
+
+# Authentication (V3 Style)
+ENV NEKO_MEMBER_PROVIDER=multiuser
+ENV NEKO_MEMBER_MULTIUSER_USER_PASSWORD=watch123
+ENV NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=admin123
