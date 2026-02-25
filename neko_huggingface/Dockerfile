@@ -11,9 +11,13 @@ ENV NEKO_WEBRTC_TCPMUX=1
 ENV NEKO_SERVER_PROXY=1
 ENV NEKO_WEBRTC_IP_RETRIEVAL_URL=https://checkip.amazonaws.com
 ENV NEKO_CAPTURE_VIDEO_CODEC=vp8
-ENV NEKO_WEBRTC_ICESERVERS_FRONTEND='[{"urls":["stun:openrelay.metered.ca:80"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443?transport=tcp"],"username":"openrelay","credential":"openrelay"}]'
 
-# Authentication
+# Hybrid STUN/TURN for better Punch-through
+ENV NEKO_WEBRTC_ICESERVERS_FRONTEND='[{"urls":["stun:stun.l.google.com:19302"]},{"urls":["stun:openrelay.metered.ca:80"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"}]'
+
+# Authentication (BOTH Legacy and V3 for safety)
+ENV NEKO_PASSWORD=watch123
+ENV NEKO_PASSWORD_ADMIN=admin123
 ENV NEKO_MEMBER_PROVIDER=multiuser
 ENV NEKO_MEMBER_MULTIUSER_USER_PASSWORD=watch123
 ENV NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=admin123
