@@ -1,32 +1,35 @@
-# We run as root so supervisord can manage the internal 'neko' user properly
-USER root
+FROM m1k1o/neko:firefox
 
-# Ensure permissions and X-server socket exist
-RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
-    chown -R neko:neko /home/neko
+# ============================================
+# NEKO V2 CONFIGURATION FOR RAILWAY
+# The image m1k1o/neko:firefox is V2, so we
+# MUST use V2 environment variable names!
+# ============================================
 
-# --- CLOUD FIXES ---
+# --- FIREFOX CLOUD FIXES ---
 ENV MOZ_DISABLE_CONTENT_SANDBOX=1
 ENV MOZ_NODEJS_SANDBOX=0
 ENV MOZ_DISABLE_GMP_SANDBOX=1
 
-# --- NEKO V3 CONFIGURATION ---
-ENV NEKO_WEBRTC_TCPMUX=1
-ENV NEKO_WEBRTC_ICELITE=1
-ENV NEKO_SERVER_PROXY=1
-ENV NEKO_WEBRTC_IP_RETRIEVAL_URL=https://checkip.amazonaws.com
-ENV NEKO_CAPTURE_VIDEO_CODEC=vp8
-ENV NEKO_WEBRTC_ICESERVERS_FRONTEND='[{"urls":["stun:stun.l.google.com:19302"]},{"urls":["stun:openrelay.metered.ca:80"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"}]'
+# --- AUTHENTICATION (V2 style) ---
+ENV NEKO_PASSWORD=watch123
+ENV NEKO_PASSWORD_ADMIN=admin123
 
-# Authentication (V3 Multiuser style)
-ENV NEKO_MEMBER_PROVIDER=multiuser
-ENV NEKO_MEMBER_MULTIUSER_USER_PASSWORD=watch123
-ENV NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=admin123
+# --- WEBRTC NETWORKING (V2 style) ---
+# ICE Lite: reduces port requirements
+ENV NEKO_ICELITE=true
 
-# Expose Railway's default-ish port
-EXPOSE 8080
+# TCP Mux: multiplex ALL WebRTC over a SINGLE TCP port
+# Railway only exposes one port, so we mux on 8081 internally
+# and rely on TURN relay for the actual media transport.
+ENV NEKO_TCPMUX=8081
 
-# Railway provides the PORT environment variable.
-# We use a shell to ensure $PORT is evaluated correctly at runtime.
-# Using 0.0.0.0 is critical for Railway ingress.
-CMD ["sh", "-c", "NEKO_SERVER_BIND=0.0.0.0:$PORT /usr/bin/supervisord -c /etc/neko/supervisord.conf"]
+# ICE servers: STUN for discovery + TURN for relay (critical for Railway)
+ENV NEKO_ICESERVERS='[{"urls":["stun:stun.l.google.com:19302"]},{"urls":["turn:openrelay.metered.ca:80"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443"],"username":"openrelay","credential":"openrelay"},{"urls":["turn:openrelay.metered.ca:443?transport=tcp"],"username":"openrelay","credential":"openrelay"}]'
+
+# Video codec
+ENV NEKO_VIDEO_CODEC=vp8
+
+# Railway provides the PORT env var dynamically.
+# We bind the HTTP/WS server to that port.
+CMD ["sh", "-c", "NEKO_BIND=0.0.0.0:$PORT /usr/bin/supervisord -c /etc/neko/supervisord.conf"]
