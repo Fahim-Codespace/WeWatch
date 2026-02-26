@@ -189,14 +189,13 @@ export const useScreenShare = () => {
             if (customStream) {
                 stream = customStream;
             } else {
-                const constraints: DisplayMediaStreamConstraints = {
+                const constraints = {
                     video: {
                         width: { ideal: 1920 },
                         height: { ideal: 1080 },
                         frameRate: { ideal: 30, max: 60 },
-                        cursor: 'motion'
+                        cursor: 'motion' as const
                     },
-                    // Try to capture tab/system audio as well so viewers hear the movie
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true
