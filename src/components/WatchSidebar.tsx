@@ -55,7 +55,7 @@ export default function WatchSidebar({
         mediaType === 'tv' ? 'episodes' : 'servers'
     );
     const [isOpen, setIsOpen] = useState(true);
-    const { fileTransfer, vBrowserActive, toggleVBrowser } = useRoom();
+    const { fileTransfer } = useRoom();
 
     // Default to 'episodes' tab when mediaType changes to 'tv'
     React.useEffect(() => {
@@ -157,44 +157,10 @@ export default function WatchSidebar({
                             </label>
                         </div>
 
-                        {/* Virtual Browser Toggle */}
-                        {roomId && (
-                            <button
-                                onClick={() => toggleVBrowser(!vBrowserActive)}
-                                style={{
-                                    width: '100%',
-                                    padding: '16px',
-                                    background: vBrowserActive ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                    border: `1px solid ${vBrowserActive ? 'var(--primary)' : 'var(--glass-border)'}`,
-                                    borderRadius: '12px',
-                                    color: vBrowserActive ? 'var(--primary)' : '#fff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '12px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    marginBottom: '20px',
-                                    boxShadow: vBrowserActive ? '0 0 20px rgba(0, 255, 136, 0.2)' : 'none'
-                                }}
-                            >
-                                <Monitor size={20} />
-                                <div style={{ textAlign: 'left' }}>
-                                    <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>
-                                        {vBrowserActive ? 'Stop Virtual Browser' : 'Start Virtual Browser'}
-                                    </div>
-                                    <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>
-                                        {vBrowserActive ? 'Switch back to direct stream' : 'Browse any site together'}
-                                    </div>
-                                </div>
-                            </button>
-                        )}
-
                         <div className="divider" style={{
                             height: '1px',
                             background: 'var(--glass-border)',
-                            margin: '0 0 20px 0',
-                            display: vBrowserActive ? 'none' : 'block'
+                            margin: '0 0 20px 0'
                         }}></div>
 
                         {sources.map((source, index) => {

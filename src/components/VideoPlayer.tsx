@@ -26,7 +26,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
     const screenVideoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
     const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, fileTransfer, notification } = useRoom();
-    const { isSharing, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
+    const { isSharing, screenShareError, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
     const [showControls, setShowControls] = useState(true);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
@@ -551,6 +551,8 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
 
             {/* Video Overlay / Controls */}
             {
+                // Only show controls when there is an active video or screen share
+                (videoState.url || activeStream) &&
                 (videoState.sourceType !== 'embed' || (videoState.sourceType === 'embed' && videoState.playing && roomId)) && (
                     <div style={{
                         position: 'absolute',
@@ -674,23 +676,44 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                                         Change Video
                                     </button>
                                 )}
-                                <button
-                                    onClick={() => isSharing ? stopScreenShare() : startScreenShare()}
-                                    style={{
-                                        background: isSharing ? 'var(--primary)' : 'none',
-                                        border: 'none',
-                                        color: isSharing ? '#000' : '#fff',
-                                        cursor: 'pointer',
-                                        padding: '6px',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                    title={isSharing ? 'Stop Screen Share' : 'Start Screen Share'}
-                                >
-                                    {isSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
-                                </button>
+                                <div style={{ position: 'relative' }}>
+                                    <button
+                                        onClick={() => isSharing ? stopScreenShare() : startScreenShare()}
+                                        style={{
+                                            background: isSharing ? 'var(--primary)' : 'none',
+                                            border: 'none',
+                                            color: isSharing ? '#000' : '#fff',
+                                            cursor: 'pointer',
+                                            padding: '6px',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                        title={isSharing ? 'Stop Screen Share' : 'Start Screen Share'}
+                                    >
+                                        {isSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
+                                    </button>
+                                    {screenShareError && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: '100%',
+                                            right: 0,
+                                            marginBottom: '8px',
+                                            padding: '8px 12px',
+                                            background: 'rgba(0,0,0,0.9)',
+                                            color: '#ff6b6b',
+                                            fontSize: '0.75rem',
+                                            borderRadius: '8px',
+                                            maxWidth: '260px',
+                                            whiteSpace: 'normal',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                            zIndex: 30
+                                        }}>
+                                            {screenShareError}
+                                        </div>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                                     style={{

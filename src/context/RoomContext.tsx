@@ -43,9 +43,7 @@ interface RoomContextType {
         sourceType: 'url' | 'local' | 'embed';
     };
     media: Media | null;
-    vBrowserActive: boolean;
     roomSettings: RoomSettings;
-    toggleVBrowser: (active: boolean) => void;
     setVideoUrl: (url: string, type: 'url' | 'local' | 'embed') => void;
     changeMedia: (media: Media) => void;
     togglePlay: () => void;
@@ -82,7 +80,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sourceType: 'url'
     });
     const [media, setMedia] = useState<Media | null>(null);
-    const [vBrowserActive, setVBrowserActive] = useState(false);
     const [roomSettings, setRoomSettings] = useState<RoomSettings>({
         persistent: false,
         isSandboxEnabled: true
@@ -112,7 +109,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         // Socket event listeners
-        newSocket.on('room-state', (state: { participants: Participant[], videoState: any, media?: Media, settings?: RoomSettings, vBrowserActive?: boolean }) => {
+        newSocket.on('room-state', (state: { participants: Participant[], videoState: any, media?: Media, settings?: RoomSettings }) => {
             setParticipants(state.participants);
             if (state.videoState.url) {
                 setVideoState(state.videoState);
@@ -122,9 +119,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             if (state.settings) {
                 setRoomSettings(state.settings);
-            }
-            if (state.vBrowserActive !== undefined) {
-                setVBrowserActive(state.vBrowserActive);
             }
         });
 
@@ -186,11 +180,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         });
 
-        newSocket.on('vbrowser-toggled', ({ active, userName }) => {
-            setVBrowserActive(active);
-            if (userName) showNotification(`${userName} ${active ? 'started' : 'stopped'} the Virtual Browser`);
-        });
-
         newSocket.on('receive-message', (message: Message) => {
             setMessages(prev => [...prev, message]);
         });
@@ -222,7 +211,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sourceType: 'url'
         });
         setMedia(null);
-        setVBrowserActive(false);
         setRoomSettings({ persistent: false });
         setNotification(null);
 
@@ -261,7 +249,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 sourceType: 'url'
             });
             setMedia(null);
-            setVBrowserActive(false);
             setRoomSettings({ persistent: false, isSandboxEnabled: true });
         }
     }, [roomId, socket]);
@@ -275,11 +262,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const changeMedia = useCallback((newMedia: Media) => {
         setMedia(newMedia);
         socket?.emit('change-media', newMedia);
-    }, [socket]);
-
-    const toggleVBrowser = useCallback((active: boolean) => {
-        setVBrowserActive(active);
-        socket?.emit('vbrowser-toggle', active);
     }, [socket]);
 
     const setVideoUrl = useCallback((url: string, type: 'url' | 'local' | 'embed') => {
@@ -334,8 +316,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 roomSettings,
                 setVideoUrl,
                 changeMedia,
-                vBrowserActive,
-                toggleVBrowser,
                 togglePlay,
                 seekVideo,
                 sendMessage,

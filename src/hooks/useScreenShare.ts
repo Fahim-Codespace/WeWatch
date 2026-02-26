@@ -5,17 +5,89 @@ import { useRoom } from '@/context/RoomContext';
 
 export const useScreenShare = () => {
     const [isSharing, setIsSharing] = useState(false);
+    const [screenShareError, setScreenShareError] = useState<string | null>(null);
     const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
     const [remoteScreenStream, setRemoteScreenStream] = useState<MediaStream | null>(null);
     const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
     const { socket } = useRoom();
 
+    // Base STUN servers for connectivity
+    const iceServers: RTCIceServer[] = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ];
+
+    // Optional TURN server from env, if configured
+    if (
+        typeof process !== 'undefined' &&
+        process.env.NEXT_PUBLIC_TURN_URL &&
+        process.env.NEXT_PUBLIC_TURN_USERNAME &&
+        process.env.NEXT_PUBLIC_TURN_CREDENTIAL
+    ) {
+        iceServers.push({
+            urls: process.env.NEXT_PUBLIC_TURN_URL.split(',').map(u => u.trim()),
+            username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL
+        });
+    }
+
     const configuration: RTCConfiguration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        iceServers
     };
+
+    const stopScreenShare = useCallback(() => {
+        setScreenShareError(null);
+        if (screenStream) {
+            screenStream.getTracks().forEach(track => track.stop());
+            setScreenStream(null);
+        }
+        setIsSharing(false);
+        socket?.emit('screen-share-stop', {});
+
+        // Close all peer connections
+        peerConnections.current.forEach(pc => pc.close());
+        peerConnections.current.clear();
+    }, [screenStream, socket]);
+
+    const createOffer = useCallback(async (targetUserId: string) => {
+        if (!screenStream) return;
+
+        const pc = new RTCPeerConnection(configuration);
+        peerConnections.current.set(targetUserId, pc);
+
+        screenStream.getTracks().forEach(track => {
+            const sender = pc.addTrack(track, screenStream);
+            if (track.kind === 'video') {
+                const params = sender.getParameters();
+                if (!params.encodings || params.encodings.length === 0) {
+                    params.encodings = [{}];
+                }
+                // Prefer higher quality; browsers may clamp based on network
+                params.encodings[0].maxBitrate = 2_500_000; // ~2.5 Mbps
+                params.encodings[0].maxFramerate = 30;
+                sender.setParameters(params).catch(err => {
+                    console.warn('Failed to set video encoding parameters', err);
+                });
+            }
+        });
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket?.emit('screen-share-ice-candidate', {
+                    candidate: event.candidate,
+                    to: targetUserId
+                });
+            }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        socket?.emit('screen-share-offer', {
+            offer,
+            to: targetUserId
+        });
+    }, [screenStream, socket]);
 
     useEffect(() => {
         if (!socket) return;
@@ -93,19 +165,45 @@ export const useScreenShare = () => {
             socket.off('screen-share-ice-candidate');
             socket.off('request-screen-share');
         };
-    }, [socket, screenStream]);
+    }, [socket, screenStream, createOffer, configuration]);
 
     const startScreenShare = useCallback(async (customStream?: MediaStream) => {
+        setScreenShareError(null);
         try {
+            if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+                setScreenShareError('Screen share is not available in this context.');
+                return;
+            }
+            // getDisplayMedia only works in secure contexts (HTTPS or localhost)
+            if (!window.isSecureContext) {
+                setScreenShareError('Screen share requires a secure connection. Open the app at https://… or http://localhost:3000');
+                return;
+            }
+            if (!navigator.mediaDevices?.getDisplayMedia) {
+                setScreenShareError('Screen share is not supported in this browser. Try Chrome or Edge and use https:// or http://localhost.');
+                return;
+            }
+
             let stream: MediaStream;
 
             if (customStream) {
                 stream = customStream;
             } else {
-                stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: false
-                });
+                const constraints: DisplayMediaStreamConstraints = {
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30, max: 60 },
+                        cursor: 'motion'
+                    },
+                    // Try to capture tab/system audio as well so viewers hear the movie
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getDisplayMedia(constraints);
             }
 
             setScreenStream(stream);
@@ -116,63 +214,28 @@ export const useScreenShare = () => {
 
             // Handle when user stops sharing via browser UI (only applicable for screen share)
             if (!customStream) {
-                stream.getVideoTracks()[0].onended = () => {
-                    stopScreenShare();
-                };
+                const [videoTrack] = stream.getVideoTracks();
+                if (videoTrack) {
+                    videoTrack.onended = () => {
+                        stopScreenShare();
+                    };
+                }
             }
 
-            // Create peer connections for broadcasting
-            // In a real implementation, you'd create connections to all participants
-            // For now, we'll create offers when needed
-
-        } catch (error) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Screen share failed';
             console.error('Error starting screen share:', error);
-        }
-    }, [socket]);
-
-    const stopScreenShare = useCallback(() => {
-        if (screenStream) {
-            screenStream.getTracks().forEach(track => track.stop());
-            setScreenStream(null);
-        }
-        setIsSharing(false);
-        socket?.emit('screen-share-stop', {});
-
-        // Close all peer connections
-        peerConnections.current.forEach(pc => pc.close());
-        peerConnections.current.clear();
-    }, [screenStream, socket]);
-
-    const createOffer = useCallback(async (targetUserId: string) => {
-        if (!screenStream) return;
-
-        const pc = new RTCPeerConnection(configuration);
-        peerConnections.current.set(targetUserId, pc);
-
-        screenStream.getTracks().forEach(track => {
-            pc.addTrack(track, screenStream);
-        });
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket?.emit('screen-share-ice-candidate', {
-                    candidate: event.candidate,
-                    to: targetUserId
-                });
+            if (String(message).toLowerCase().includes('permission') || (error as { name?: string })?.name === 'NotAllowedError') {
+                setScreenShareError('Permission denied. Please allow screen or tab sharing when prompted.');
+            } else {
+                setScreenShareError(message);
             }
-        };
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        socket?.emit('screen-share-offer', {
-            offer,
-            to: targetUserId
-        });
-    }, [screenStream, socket]);
+        }
+    }, [socket, stopScreenShare]);
 
     return {
         isSharing,
+        screenShareError,
         screenStream,
         remoteScreenStream,
         startScreenShare,

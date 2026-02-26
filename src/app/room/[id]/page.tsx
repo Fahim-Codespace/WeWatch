@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRoom } from '@/context/RoomContext';
 import VideoPlayer from '@/components/VideoPlayer';
-import VBrowserPlayer from '@/components/VBrowserPlayer';
 import ChatSystem from '@/components/ChatSystem';
 import BrowseModal from '@/components/BrowseModal';
 import RoomSettingsModal from '@/components/RoomSettingsModal';
@@ -33,8 +32,6 @@ export default function RoomPage() {
         updateRoomSettings,
         changeMedia,
         media,
-        vBrowserActive,
-        toggleVBrowser,
         leaveRoom
     } = useRoom();
     const [isJoined, setIsJoined] = useState(false);
@@ -61,8 +58,6 @@ export default function RoomPage() {
     const [movieDetails, setMovieDetails] = useState<MediaDetails | null>(null);
 
     const [rememberName, setRememberName] = useState(false);
-
-
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     // Load saved global name on mount
@@ -101,7 +96,6 @@ export default function RoomPage() {
     useEffect(() => {
         if (!params.id) return;
 
-        // Handle both string and array params
         const roomId = Array.isArray(params.id) ? params.id[0] : params.id;
         const key = `wewatch_name_${roomId}`;
         const savedName = localStorage.getItem(key);
@@ -113,28 +107,12 @@ export default function RoomPage() {
             console.log('[Auth] No session found, showing join form');
             setIsCheckingAuth(false);
         } else {
-            console.log('[Auth] Found session, setting user:', savedName);
+            console.log('[Auth] Found session, pre-filling user:', savedName);
             setUserName(savedName);
+            // Still let user confirm or change name before joining
+            setIsCheckingAuth(false);
         }
     }, [params.id]);
-
-    // Attempt auto-rejoin when socket is ready
-    useEffect(() => {
-        if (!params.id || !userName || isJoined) return;
-
-        // If we are checking auth, we wait for socket
-        // If socket is ready, join
-
-        if (socket) {
-            const roomId = Array.isArray(params.id) ? params.id[0] : params.id;
-            console.log('[Auth] Socket ready, joining room:', roomId);
-
-            joinRoom(roomId, userName);
-            setIsJoined(true);
-            setIsCheckingAuth(false);
-            setShouldInitVideo(true);
-        }
-    }, [socket, userName, isJoined, params.id, joinRoom]);
 
     const handleLeaveRoom = () => {
         if (params.id) {
@@ -606,28 +584,17 @@ export default function RoomPage() {
             <div className="room-content">
                 {/* Playback Area */}
                 <div className="video-area">
-                    {vBrowserActive ? (
-                        <>
-                            {console.log("[RoomPage] Rendering VBrowserPlayer with currentUserName:", currentUserName)}
-                            <VBrowserPlayer
-                                roomId={params.id as string}
-                                url={videoState.url}
-                                userName={currentUserName}
-                            />
-                        </>
-                    ) : (
-                        <VideoPlayer
-                            isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
-                            media={mediaId ? {
-                                id: mediaId,
-                                type: isTvShow ? 'tv' : 'movie',
-                                title: mediaTitle || 'Unknown',
-                                poster: isTvShow ? (tvDetails?.poster_path || null) : (movieDetails?.poster_path || null),
-                                season: isTvShow ? currentSeason : undefined,
-                                episode: isTvShow ? currentEpisode : undefined
-                            } : undefined}
-                        />
-                    )}
+                    <VideoPlayer
+                        isSandboxEnabled={roomSettings.isSandboxEnabled ?? true}
+                        media={mediaId ? {
+                            id: mediaId,
+                            type: isTvShow ? 'tv' : 'movie',
+                            title: mediaTitle || 'Unknown',
+                            poster: isTvShow ? (tvDetails?.poster_path || null) : (movieDetails?.poster_path || null),
+                            season: isTvShow ? currentSeason : undefined,
+                            episode: isTvShow ? currentEpisode : undefined
+                        } : undefined}
+                    />
                 </div>
 
                 {/* Sidebar */}
@@ -781,7 +748,7 @@ export default function RoomPage() {
 
                 @media (max-width: 768px) {
                     .room-id-badge, .divider { display: none; }
-                    
+
                     .room-content {
                         flex-direction: column;
                     }
@@ -789,7 +756,7 @@ export default function RoomPage() {
                         padding: 0;
                         flex: none;
                         width: 100%;
-                        height: auto; 
+                        height: auto;
                         aspect-ratio: 16/9;
                     }
 
@@ -812,9 +779,9 @@ export default function RoomPage() {
                         gap: 10px;
                     }
 
-                    .brand-text {
-                        display: none;
-                    }
+                        .brand-text {
+                            font-size: 1rem;
+                        }
 
                     /* Header Actions - Mobile */
                     .header-actions {
@@ -907,11 +874,6 @@ export default function RoomPage() {
                             const sources = getStreamSources(type, media.id);
                             if (sources.length > 0) {
                                 setVideoUrl(sources[0].url, 'embed');
-
-                                // Auto-start Virtual Browser if in a room
-                                if (!vBrowserActive) {
-                                    toggleVBrowser(true);
-                                }
                             }
 
                             // 3. Update Local URL (History only, no navigation away)

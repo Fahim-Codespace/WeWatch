@@ -53,7 +53,6 @@ io.on('connection', (socket) => {
                     sourceType: 'url'
                 },
                 media: null, // Track current media { type, id, title, poster }
-                vBrowserActive: false, // Track if virtual browser is active
                 settings: {
                     settings: {
                         persistent: false,
@@ -77,7 +76,6 @@ io.on('connection', (socket) => {
             participants: room.participants,
             videoState: room.videoState,
             media: room.media, // Send current media
-            vBrowserActive: room.vBrowserActive, // Send vBrowser state
             settings: room.settings
         });
 
@@ -111,20 +109,6 @@ io.on('connection', (socket) => {
             // Broadcast to others
             socket.to(currentRoomId).emit('media-changed', {
                 ...media,
-                userName: currentUserName
-            });
-        }
-    });
-
-    // Virtual Browser Logic
-    socket.on('vbrowser-toggle', (active) => {
-        if (!currentRoomId) return;
-        const room = rooms.get(currentRoomId);
-        if (room) {
-            room.vBrowserActive = active;
-            // Broadcast to others
-            socket.to(currentRoomId).emit('vbrowser-toggled', {
-                active,
                 userName: currentUserName
             });
         }
