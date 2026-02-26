@@ -357,71 +357,22 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                 />
             ) : videoState.url ? (
                 videoState.sourceType === 'embed' ? (
-                    (roomId && !videoState.playing) ? (
-                        // Start Session Overlay for Embeds
-                        <div style={{
+                    // Render iframe for embed sources (no session gating)
+                    <iframe
+                        key={videoState.url}
+                        src={videoState.url}
+                        style={{
                             width: '100%',
                             height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url(' + (media?.poster || '') + ') center/cover no-repeat',
-                            color: '#fff',
-                            gap: '24px',
-                            zIndex: 10
-                        }}>
-                            <div style={{ textAlign: 'center', maxWidth: '600px', padding: '0 20px' }}>
-                                <h2 style={{ fontSize: '2rem', marginBottom: '10px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                                    {media?.title || 'Synchronized Session'}
-                                </h2>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-                                    Ready to watch? Click start to begin for everyone.
-                                </p>
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mt-6 text-sm text-yellow-200/80 max-w-md mx-auto">
-                                    <p className="flex items-center gap-2 justify-center font-medium mb-1">
-                                        <Info size={16} /> Note on controls
-                                    </p>
-                                    Once started, pause/seek controls inside the video player are local only.
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => togglePlay()}
-                                className="btn-primary"
-                                style={{
-                                    padding: '16px 48px',
-                                    fontSize: '1.2rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    boxShadow: '0 0 30px var(--primary-glow)',
-                                    transform: 'scale(1)',
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                <Play size={28} fill="currentColor" />
-                                Start Session
-                            </button>
-                        </div>
-                    ) : (
-                        // Render iframe for embed sources
-                        <iframe
-                            key={videoState.url}
-                            src={videoState.url}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                border: 'none',
-                                pointerEvents: 'auto',
-                                zIndex: 1
-                            }}
-                            referrerPolicy="origin"
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            {...(isSandboxEnabled ? { sandbox: "allow-scripts allow-same-origin allow-presentation" } : {})}
-                        />
-                    )
+                            border: 'none',
+                            pointerEvents: 'auto',
+                            zIndex: 1
+                        }}
+                        referrerPolicy="origin"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        {...(isSandboxEnabled ? { sandbox: "allow-scripts allow-same-origin allow-presentation" } : {})}
+                    />
                 ) : (
                     // Render video element HTML5
                     <video
@@ -552,8 +503,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
             {/* Video Overlay / Controls */}
             {
                 // Only show controls when there is an active video or screen share
-                (videoState.url || activeStream) &&
-                (videoState.sourceType !== 'embed' || (videoState.sourceType === 'embed' && videoState.playing && roomId)) && (
+                (videoState.url || activeStream) && (
                     <div style={{
                         position: 'absolute',
                         bottom: 0,
@@ -627,27 +577,10 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                                         </span>
                                     </>
                                 ) : (
-                                    // Controls for Embeds (Stop Session)
-                                    <div className="flex items-center gap-4">
-                                        <button
-                                            onClick={() => togglePlay()} // Toggles playing to false -> shows start overlay
-                                            className="btn-secondary"
-                                            style={{
-                                                background: 'rgba(255, 68, 68, 0.15)',
-                                                color: '#ff4444',
-                                                border: '1px solid rgba(255, 68, 68, 0.3)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}
-                                        >
-                                            <Pause size={18} fill="currentColor" />
-                                            Stop Session
-                                        </button>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            Playing shared content
-                                        </span>
-                                    </div>
+                                    // Embed sources: show a lightweight hint (iframe controls are site-specific)
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        Embedded player (controls may be local only)
+                                    </span>
                                 )}
 
                             </div>
