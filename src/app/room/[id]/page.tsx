@@ -837,20 +837,24 @@ export default function RoomPage() {
                 isOpen={showBrowseModal}
                 onClose={() => setShowBrowseModal(false)}
                 onSelect={(selectedMedia) => {
-                    // Update: Show details instead of playing immediately
                     const isMovie = 'title' in selectedMedia;
                     const type = isMovie ? 'movie' : 'tv';
+                    const title = isMovie ? selectedMedia.title : (selectedMedia as any).name;
 
-                    // Fetch full details if needed, or use selectedMedia if it has enough info. 
-                    // Usually browse results are partial. 
-                    // For now, we'll try to use what we have, or fetch via a separate effect if needed.
-                    // But we need a way to pass this to MediaDetailView.
-                    // Let's assume selectedMedia is enough for preview, or we fetch details.
-                    // Ideally we should set a state that triggers the Detail View.
+                    // Immediately load and sync the selected media for the room
+                    changeMedia({
+                        type,
+                        id: selectedMedia.id,
+                        title,
+                        poster: selectedMedia.poster_path || undefined
+                    });
 
-                    // We need to fetch full details because Browse often returns partial data
-                    // (though MediaDetailView handles what it gets). 
-                    // Let's set a "previewMedia" state.
+                    const sources = getStreamSources(type, selectedMedia.id);
+                    if (sources.length > 0) {
+                        setVideoUrl(sources[0].url, 'embed');
+                    }
+
+                    // Also open the detail overlay so the user can see info / change episodes, etc.
                     setPreviewMedia({ media: selectedMedia, type });
                     setShowBrowseModal(false);
                 }}
