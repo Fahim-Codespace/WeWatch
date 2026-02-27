@@ -92,24 +92,23 @@ export const useScreenShare = () => {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('screen-share-started', async ({ userId, userName }) => {
+        const handleStarted = async ({ userId, userName }: { userId: string; userName: string }) => {
             console.log(`${userName} started screen sharing`);
-            // Request offer from the sharer
             if (socket.id !== userId) {
                 socket.emit('request-screen-share', { to: userId });
             }
-        });
+        };
 
-        socket.on('screen-share-stopped', ({ userId }) => {
+        const handleStopped = ({ userId }: { userId: string }) => {
             const pc = peerConnections.current.get(userId);
             if (pc) {
                 pc.close();
                 peerConnections.current.delete(userId);
             }
             setRemoteScreenStream(null);
-        });
+        };
 
-        socket.on('screen-share-offer', async ({ offer, from }) => {
+        const handleOffer = async ({ offer, from }: { offer: RTCSessionDescriptionInit; from: string }) => {
             const pc = new RTCPeerConnection(configuration);
             peerConnections.current.set(from, pc);
 
@@ -134,44 +133,50 @@ export const useScreenShare = () => {
                 answer,
                 to: from
             });
-        });
+        };
 
-        socket.on('screen-share-answer', async ({ answer, from }) => {
+        const handleAnswer = async ({ answer, from }: { answer: RTCSessionDescriptionInit; from: string }) => {
             const pc = peerConnections.current.get(from);
             if (pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(answer));
             }
-        });
+        };
 
-        socket.on('request-screen-share', async ({ from }) => {
-            // When someone requests our screen share, create an offer for them
+        const handleRequestShare = async ({ from }: { from: string }) => {
             if (screenStream) {
                 createOffer(from);
             }
-        });
+        };
 
-        socket.on('screen-share-ice-candidate', async ({ candidate, from }) => {
+        const handleIceCandidate = async ({ candidate, from }: { candidate: RTCIceCandidateInit; from: string }) => {
             const pc = peerConnections.current.get(from);
             if (pc && candidate) {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
-        });
+        };
 
-        // If we join a room where screen share is already active, the server includes the host id.
-        socket.on('room-state', (state: { screenShareHostId?: string }) => {
+        const handleRoomState = (state: { screenShareHostId?: string }) => {
             if (state.screenShareHostId && state.screenShareHostId !== socket.id) {
                 socket.emit('request-screen-share', { to: state.screenShareHostId });
             }
-        });
+        };
+
+        socket.on('screen-share-started', handleStarted);
+        socket.on('screen-share-stopped', handleStopped);
+        socket.on('screen-share-offer', handleOffer);
+        socket.on('screen-share-answer', handleAnswer);
+        socket.on('request-screen-share', handleRequestShare);
+        socket.on('screen-share-ice-candidate', handleIceCandidate);
+        socket.on('room-state', handleRoomState);
 
         return () => {
-            socket.off('screen-share-started');
-            socket.off('screen-share-stopped');
-            socket.off('screen-share-offer');
-            socket.off('screen-share-answer');
-            socket.off('screen-share-ice-candidate');
-            socket.off('request-screen-share');
-            socket.off('room-state');
+            socket.off('screen-share-started', handleStarted);
+            socket.off('screen-share-stopped', handleStopped);
+            socket.off('screen-share-offer', handleOffer);
+            socket.off('screen-share-answer', handleAnswer);
+            socket.off('request-screen-share', handleRequestShare);
+            socket.off('screen-share-ice-candidate', handleIceCandidate);
+            socket.off('room-state', handleRoomState);
         };
     }, [socket, screenStream, createOffer, configuration]);
 
