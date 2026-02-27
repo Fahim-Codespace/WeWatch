@@ -849,6 +849,18 @@ export default function RoomPage() {
                         poster: selectedMedia.poster_path || undefined
                     });
 
+                    // Keep local media state in sync so sidebar/server list update immediately
+                    setMediaId(selectedMedia.id);
+                    if (type === 'tv') {
+                        setIsTvShow(true);
+                        setTvId(selectedMedia.id);
+                        setCurrentSeason(1);
+                        setCurrentEpisode(1);
+                    } else {
+                        setIsTvShow(false);
+                        setTvId(null);
+                    }
+
                     const sources = getStreamSources(type, selectedMedia.id);
                     if (sources.length > 0) {
                         setVideoUrl(sources[0].url, 'embed');
