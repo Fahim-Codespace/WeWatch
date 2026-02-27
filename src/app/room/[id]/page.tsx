@@ -778,10 +778,9 @@ export default function RoomPage() {
                         height: 60px;
                         gap: 10px;
                     }
-
-                        .brand-text {
-                            font-size: 1rem;
-                        }
+                    .brand-text {
+                        font-size: 1rem;
+                    }
 
                     /* Header Actions - Mobile */
                     .header-actions {
@@ -799,8 +798,8 @@ export default function RoomPage() {
 
                     .browse-btn, .invite-btn, .leave-btn, .watching-badge {
                         padding: 0;
-                        width: 36px;
-                        height: 36px;
+                        width: 34px;
+                        height: 34px;
                         display: flex;
                         align-items: center;
                         justify-content: center; 
@@ -815,6 +814,20 @@ export default function RoomPage() {
                     .watching-badge span {
                          display: inline-block;
                          font-size: 0.8rem;
+                    }
+                }
+
+                /* Extra-small phones: hide watcher count to keep header from overflowing */
+                @media (max-width: 480px) {
+                    .watching-badge {
+                        display: none;
+                    }
+                    .room-header {
+                        padding: 8px 12px;
+                    }
+                    .btn-back {
+                        width: 34px;
+                        height: 34px;
                     }
                 }
             `}</style>

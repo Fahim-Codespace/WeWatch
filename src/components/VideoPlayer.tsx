@@ -24,6 +24,7 @@ interface VideoPlayerProps {
 export default function VideoPlayer({ initialSources, isSandboxEnabled = true, media }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const screenVideoRef = useRef<HTMLVideoElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const hlsRef = useRef<Hls | null>(null);
     const { videoState, togglePlay, seekVideo, setVideoUrl, socket, roomId, fileTransfer, notification } = useRoom();
     const { isSharing, screenShareError, screenStream, remoteScreenStream, startScreenShare, stopScreenShare } = useScreenShare();
@@ -286,16 +287,25 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
         setShowControls(true);
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         controlsTimeoutRef.current = setTimeout(() => {
-            if (videoState.playing) setShowControls(false);
-        }, 3000);
+            // Hide controls after a short delay whenever there is content
+            if (videoState.url || screenStream || remoteScreenStream) {
+                setShowControls(false);
+            }
+        }, 2500);
     };
 
     const toggleFullScreen = () => {
-        if (!videoRef.current) return;
+        const target = containerRef.current;
+        if (!target) return;
+
         if (document.fullscreenElement) {
             document.exitFullscreen();
         } else {
-            videoRef.current.parentElement?.requestFullscreen();
+            if (target.requestFullscreen) {
+                target.requestFullscreen().catch(() => {
+                    // Ignore fullscreen errors
+                });
+            }
         }
     };
 
@@ -338,6 +348,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
         <div
             className="glass"
             onMouseMove={handleMouseMove}
+            ref={containerRef}
             style={{
                 position: 'relative',
                 width: '100%',
@@ -576,12 +587,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                                             {formatTime(videoRef.current?.currentTime || 0)} / {formatTime(videoRef.current?.duration || 0)}
                                         </span>
                                     </>
-                                ) : (
-                                    // Embed sources: show a lightweight hint (iframe controls are site-specific)
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                        Embedded player (controls may be local only)
-                                    </span>
-                                )}
+                                ) : null}
 
                             </div>
 
