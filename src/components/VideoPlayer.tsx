@@ -43,6 +43,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
     const [availableQualities, setAvailableQualities] = useState<{ index: number; height: number; label: string }[]>([]);
     const [currentQuality, setCurrentQuality] = useState(-1); // -1 means auto
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [showShareHint, setShowShareHint] = useState(false);
     const isRemoteAction = useRef(false); // Flag to prevent sync loops
 
     const { updateProgress } = useWatchHistory();
@@ -293,6 +294,13 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
             }
         }, 2500);
     };
+
+    // If screen share successfully starts, hide any helper hint
+    useEffect(() => {
+        if (isSharing) {
+            setShowShareHint(false);
+        }
+    }, [isSharing]);
 
     const toggleFullScreen = () => {
         const target = containerRef.current;
@@ -617,7 +625,29 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                                 )}
                                 <div style={{ position: 'relative' }}>
                                     <button
-                                        onClick={() => isSharing ? stopScreenShare() : startScreenShare()}
+                                        onClick={() => {
+                                            if (isSharing) {
+                                                stopScreenShare();
+                                                return;
+                                            }
+
+                                            // Smart share flow for embed sources:
+                                            // open the current video in a separate window first,
+                                            // then let the user pick that window in the share dialog.
+                                            if (videoState.sourceType === 'embed' && videoState.url && typeof window !== 'undefined') {
+                                                try {
+                                                    const opened = window.open(videoState.url, '_blank', 'noopener,noreferrer');
+                                                    if (opened) {
+                                                        opened.focus();
+                                                    }
+                                                    setShowShareHint(true);
+                                                } catch {
+                                                    // Ignore window.open failures (pop-up blockers, etc.)
+                                                }
+                                            }
+
+                                            startScreenShare();
+                                        }}
                                         style={{
                                             background: isSharing ? 'var(--primary)' : 'none',
                                             border: 'none',
@@ -633,10 +663,29 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
                                     >
                                         {isSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
                                     </button>
-                                    {screenShareError && (
+                                    {showShareHint && !isSharing && (
                                         <div style={{
                                             position: 'absolute',
                                             bottom: '100%',
+                                            right: 0,
+                                            marginBottom: '8px',
+                                            padding: '8px 12px',
+                                            background: 'rgba(0,0,0,0.85)',
+                                            color: '#ffffff',
+                                            fontSize: '0.75rem',
+                                            borderRadius: '8px',
+                                            maxWidth: '260px',
+                                            whiteSpace: 'normal',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                            zIndex: 30
+                                        }}>
+                                            We opened the video in a new window. In the share prompt, select that window/tab to share.
+                                        </div>
+                                    )}
+                                    {screenShareError && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: showShareHint ? 'calc(100% + 48px)' : '100%',
                                             right: 0,
                                             marginBottom: '8px',
                                             padding: '8px 12px',

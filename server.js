@@ -287,6 +287,29 @@ io.on('connection', (socket) => {
         });
     });
 
+    // Explicit leave-room handling (user leaves but socket stays connected)
+    socket.on('leave-room', () => {
+        if (!currentRoomId) return;
+        const room = rooms.get(currentRoomId);
+        if (room) {
+            room.participants = room.participants.filter(p => p.id !== socket.id);
+
+            socket.to(currentRoomId).emit('user-left', {
+                id: socket.id,
+                name: currentUserName
+            });
+
+            if (room.participants.length === 0 && !room.settings?.persistent) {
+                rooms.delete(currentRoomId);
+                console.log(`Room ${currentRoomId} deleted (empty, via leave-room)`);
+            }
+        }
+
+        socket.leave(currentRoomId);
+        currentRoomId = null;
+        currentUserName = null;
+    });
+
     // Disconnect handling
     socket.on('disconnect', () => {
         if (currentRoomId) {

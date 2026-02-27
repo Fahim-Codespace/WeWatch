@@ -221,36 +221,22 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const leaveRoom = useCallback(() => {
         if (roomId && socket) {
-            // Socket.io automatically handles leaving rooms on the server side when emitting a specific event or disconnecting
-            // But we can emit an explicit leave event if we want custom server logic, or just rely on 'disconnect' if we close.
-            // However, we probably don't want to close the socket entirely if we want to reuse it, 
-            // BUT for this app, we can just emit a 'leave-room' or simply clear state.
-            // The server listens for disconnect, but we are not disconnecting the socket, just leaving the room logically.
-            // Server.js shows: if (currentRoomId) socket.leave(currentRoomId) inside 'join-room'.
-            // It doesn't have an explicit 'leave-room' handler, but we can add one OR just rely on the fact that
-            // when we navigate away, we want to clear local state.
-            // Actually, looking at server.js, there IS NO explicit 'leave-room' handler.
-            // We should add one to server.js OR just emit 'join-room' with null? No.
-            // We should probably add a 'leave-room' event to server.js for cleanliness,
-            // OR we can just disconnect the socket to force a leave.
-            // Let's disconnect and reconnect for simplicity and robustness.
-            socket.disconnect();
-            const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
-            setSocket(newSocket);
-
-            // Clear local state
-            setRoomId(null);
-            setParticipants([]);
-            setMessages([]);
-            setVideoState({
-                url: '',
-                playing: false,
-                currentTime: 0,
-                sourceType: 'url'
-            });
-            setMedia(null);
-            setRoomSettings({ persistent: false, isSandboxEnabled: true });
+            // Tell the server we are leaving the current room but keep the socket connection alive
+            socket.emit('leave-room');
         }
+
+        // Clear local state
+        setRoomId(null);
+        setParticipants([]);
+        setMessages([]);
+        setVideoState({
+            url: '',
+            playing: false,
+            currentTime: 0,
+            sourceType: 'url'
+        });
+        setMedia(null);
+        setRoomSettings({ persistent: false, isSandboxEnabled: true });
     }, [roomId, socket]);
 
     const updateRoomSettings = useCallback((settings: Partial<RoomSettings>) => {
