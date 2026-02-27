@@ -852,18 +852,24 @@ export default function RoomPage() {
                     // Keep local media state in sync so sidebar/server list update immediately
                     setMediaId(selectedMedia.id);
                     if (type === 'tv') {
+                        const season = 1;
+                        const episode = 1;
                         setIsTvShow(true);
                         setTvId(selectedMedia.id);
-                        setCurrentSeason(1);
-                        setCurrentEpisode(1);
+                        setCurrentSeason(season);
+                        setCurrentEpisode(episode);
+
+                        const sources = getStreamSources('tv', selectedMedia.id, season, episode);
+                        if (sources.length > 0) {
+                            setVideoUrl(sources[0].url, 'embed');
+                        }
                     } else {
                         setIsTvShow(false);
                         setTvId(null);
-                    }
-
-                    const sources = getStreamSources(type, selectedMedia.id);
-                    if (sources.length > 0) {
-                        setVideoUrl(sources[0].url, 'embed');
+                        const sources = getStreamSources('movie', selectedMedia.id);
+                        if (sources.length > 0) {
+                            setVideoUrl(sources[0].url, 'embed');
+                        }
                     }
 
                     // Also open the detail overlay so the user can see info / change episodes, etc.
@@ -899,10 +905,19 @@ export default function RoomPage() {
                                 poster: media.poster_path || undefined
                             });
 
-                            // 2. Sync Video
-                            const sources = getStreamSources(type, media.id);
-                            if (sources.length > 0) {
-                                setVideoUrl(sources[0].url, 'embed');
+                            // 2. Sync Video (respect current season/episode for TV)
+                            if (type === 'tv') {
+                                const season = currentSeason || 1;
+                                const episode = currentEpisode || 1;
+                                const sources = getStreamSources('tv', media.id, season, episode);
+                                if (sources.length > 0) {
+                                    setVideoUrl(sources[0].url, 'embed');
+                                }
+                            } else {
+                                const sources = getStreamSources('movie', media.id);
+                                if (sources.length > 0) {
+                                    setVideoUrl(sources[0].url, 'embed');
+                                }
                             }
 
                             // 3. Update Local URL (History only, no navigation away)
