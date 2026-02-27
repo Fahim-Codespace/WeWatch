@@ -53,6 +53,7 @@ io.on('connection', (socket) => {
                     sourceType: 'url'
                 },
                 media: null, // Track current media { type, id, title, poster }
+                screenShareHostId: null,
                 settings: {
                     settings: {
                         persistent: false,
@@ -76,6 +77,7 @@ io.on('connection', (socket) => {
             participants: room.participants,
             videoState: room.videoState,
             media: room.media, // Send current media
+            screenShareHostId: room.screenShareHostId,
             settings: room.settings
         });
 
@@ -197,6 +199,10 @@ io.on('connection', (socket) => {
     // Screen sharing events
     socket.on('screen-share-start', (data) => {
         if (!currentRoomId) return;
+        const room = rooms.get(currentRoomId);
+        if (room) {
+            room.screenShareHostId = socket.id;
+        }
         socket.to(currentRoomId).emit('screen-share-started', {
             userId: socket.id,
             userName: currentUserName
@@ -205,6 +211,10 @@ io.on('connection', (socket) => {
 
     socket.on('screen-share-stop', () => {
         if (!currentRoomId) return;
+        const room = rooms.get(currentRoomId);
+        if (room) {
+            room.screenShareHostId = null;
+        }
         socket.to(currentRoomId).emit('screen-share-stopped', {
             userId: socket.id
         });
@@ -302,6 +312,11 @@ io.on('connection', (socket) => {
             if (room.participants.length === 0 && !room.settings?.persistent) {
                 rooms.delete(currentRoomId);
                 console.log(`Room ${currentRoomId} deleted (empty, via leave-room)`);
+            } else if (room.screenShareHostId === socket.id) {
+                room.screenShareHostId = null;
+                socket.to(currentRoomId).emit('screen-share-stopped', {
+                    userId: socket.id
+                });
             }
         }
 

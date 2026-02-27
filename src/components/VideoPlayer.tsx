@@ -356,6 +356,7 @@ export default function VideoPlayer({ initialSources, isSandboxEnabled = true, m
         <div
             className="glass"
             onMouseMove={handleMouseMove}
+            onTouchStart={handleMouseMove}
             ref={containerRef}
             style={{
                 position: 'relative',

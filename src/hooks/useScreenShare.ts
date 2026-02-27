@@ -157,6 +157,13 @@ export const useScreenShare = () => {
             }
         });
 
+        // If we join a room where screen share is already active, the server includes the host id.
+        socket.on('room-state', (state: { screenShareHostId?: string }) => {
+            if (state.screenShareHostId && state.screenShareHostId !== socket.id) {
+                socket.emit('request-screen-share', { to: state.screenShareHostId });
+            }
+        });
+
         return () => {
             socket.off('screen-share-started');
             socket.off('screen-share-stopped');
@@ -164,6 +171,7 @@ export const useScreenShare = () => {
             socket.off('screen-share-answer');
             socket.off('screen-share-ice-candidate');
             socket.off('request-screen-share');
+            socket.off('room-state');
         };
     }, [socket, screenStream, createOffer, configuration]);
 
